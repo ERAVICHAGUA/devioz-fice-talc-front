@@ -1,0 +1,53 @@
+name: Deploy Frontend to Cloud Run
+
+on:
+  push:
+    branches:
+      - main
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+
+    permissions:
+      contents: read
+      id-token: write
+
+    env:
+      PROJECT_ID: project-ec71bfb1-d784-43f4-838
+      REGION: us-central1
+      REPOSITORY: engineai
+      SERVICE: devioz-frontend
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Authenticate to Google Cloud
+        uses: google-github-actions/auth@v2
+        with:
+          workload_identity_provider: projects/777439108015/locations/global/workloadIdentityPools/github-pool/providers/github
+          service_account: github-deployer@project-ec71bfb1-d784-43f4-838.iam.gserviceaccount.com
+
+      - name: Setup gcloud
+        uses: google-github-actions/setup-gcloud@v2
+
+      - name: Configure Docker
+        run: |
+          gcloud auth configure-docker us-central1-docker.pkg.dev
+
+      - name: Build Docker image
+        run: |
+          docker build -t us-central1-docker.pkg.dev/$PROJECT_ID/engineai/frontend:$GITHUB_SHA .
+
+      - name: Push Docker image
+        run: |
+          docker push us-central1-docker.pkg.dev/$PROJECT_ID/engineai/frontend:$GITHUB_SHA
+
+      - name: Deploy to Cloud Run
+        run: |
+          gcloud run deploy devioz-frontend \
+            --image us-central1-docker.pkg.dev/$PROJECT_ID/engineai/frontend:$GITHUB_SHA \
+            --region us-central1 \
+            --platform managed \
+            --allow-unauthenticated
