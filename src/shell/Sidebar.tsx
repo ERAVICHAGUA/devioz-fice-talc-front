@@ -36,13 +36,25 @@ export function Sidebar() {
           collapsed ? "w-[86px]" : "w-[280px]"
         )}
       >
+        {/* Header / Brand */}
         <div className="flex items-center justify-between gap-3 px-2 py-2">
           <div className="flex items-center gap-3">
-            <div className="h-10 w-10 rounded-2xl bg-accent/20 ring-1 ring-accent/25 shadow-glow" />
+            <img
+              src="/logo-dineroh.png"
+              alt="Diner Oh"
+              draggable={false}
+              className={cn(
+                "select-none",
+                collapsed
+                  ? "h-10 w-10 rounded-2xl object-contain"
+                  : "h-10 w-10 rounded-2xl object-contain drop-shadow-[0_0_10px_rgba(0,245,160,0.16)]"
+              )}
+            />
+
             {!collapsed ? (
               <div className="leading-tight">
-                <div className="text-sm font-semibold">Devioz</div>
-                <div className="text-xs text-white/55">FICE • TACL</div>
+                <div className="text-sm font-semibold">Diner Oh!</div>
+                <div className="text-xs text-white/55">Plataforma financiera inteligente</div>
               </div>
             ) : null}
           </div>
@@ -56,10 +68,16 @@ export function Sidebar() {
           </button>
         </div>
 
+        {/* Navigation */}
         <div className="mt-2 flex-1 space-y-4 overflow-auto pr-1 scrollbar-thin">
           {groups.map((g) => (
             <div key={g.group}>
-              {!collapsed ? <div className="px-2 pb-2 text-[11px] font-medium text-white/40">{g.group}</div> : null}
+              {!collapsed ? (
+                <div className="px-2 pb-2 text-[11px] font-medium text-white/40">
+                  {g.group}
+                </div>
+              ) : null}
+
               <div className="space-y-1">
                 {g.items.map((it) => {
                   const Icon = it.icon;
@@ -93,15 +111,20 @@ export function Sidebar() {
           ))}
         </div>
 
+        {/* Footer (simple, no técnico) */}
         <div className="mt-3 rounded-2xl border border-white/10 bg-white/5 p-3">
           {!collapsed ? (
             <>
-              <div className="text-xs text-white/60">Contexto</div>
-              <div className="mt-1 text-sm font-semibold">{auth.role ?? "—"}</div>
-              <div className="mt-1 text-xs text-white/45">{auth.status === "authenticated" ? auth.user_id : "Sin sesión"}</div>
+              <div className="text-xs text-white/60">Cuenta</div>
+              <div className="mt-1 text-sm font-semibold">
+                {auth.status === "authenticated" ? (auth.full_name ?? auth.email ?? "Mi cuenta") : "Invitado"}
+              </div>
+              <div className="mt-1 text-xs text-white/45">
+                {auth.status === "authenticated" ? "Sesión activa" : "Inicia sesión para continuar"}
+              </div>
             </>
           ) : (
-            <div className="text-center text-xs text-white/55">CTX</div>
+            <div className="text-center text-xs text-white/55">OK</div>
           )}
         </div>
       </aside>

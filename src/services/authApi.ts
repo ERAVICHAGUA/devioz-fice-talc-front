@@ -10,16 +10,15 @@ export const authApi = {
       body: JSON.stringify({ email, password }),
     }),
 
-  // Register real: { email, password }
   register: (email: string, password: string) =>
     api<any>("talc", "/auth/register", {
       method: "POST",
       body: JSON.stringify({ email, password }),
     }),
 
-  // Opcional: si no existe en tu backend, igual no rompe porque lo atrapamos
-  logout: () =>
-    api<any>("talc", "/auth/logout", {
-      method: "POST",
-    }),
+  // ✅ JWT logout real: borrar token local (no llamar al backend)
+  logout: async () => {
+    localStorage.removeItem("devioz.auth");
+    return null;
+  },
 };

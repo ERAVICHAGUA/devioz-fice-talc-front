@@ -200,7 +200,7 @@ function WidgetRenderer({
           <Empty title="Sin identidad" description="Este usuario no tiene financial_identity." />
         ) : (
           <div className="grid grid-cols-2 gap-3">
-            <KpiCard label="Income type" value={q.qIdentity.data.income_type} />
+            <KpiCard label="Income type" value={q.qIdentity.data?.income_type ?? "-"} />
             <KpiCard label="Stability" value={`${q.qIdentity.data.income_stability_score}/100`} />
             <KpiCard label="Risk" value={q.qIdentity.data.risk_tolerance} />
             <KpiCard label="Decision style" value={q.qIdentity.data.decision_style} />
