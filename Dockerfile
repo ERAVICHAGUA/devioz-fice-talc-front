@@ -5,6 +5,13 @@ COPY package*.json ./
 RUN npm install
 
 COPY . .
+
+ARG VITE_TALC_BASE_URL
+ARG VITE_FICE_BASE_URL
+
+ENV VITE_TALC_BASE_URL=$VITE_TALC_BASE_URL
+ENV VITE_FICE_BASE_URL=$VITE_FICE_BASE_URL
+
 RUN npm run build
 
 FROM nginx:alpine
