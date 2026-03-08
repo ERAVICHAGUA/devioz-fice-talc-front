@@ -2,7 +2,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { useAuth } from "@/state/auth";
 import { useQuery } from "@tanstack/react-query";
-import * as db from "@/services/mockDb";
+import * as fice from "@/services/ficeApi";
 import { Skeleton } from "@/components/common/Skeleton";
 import { KpiCard } from "@/components/common/KpiCard";
 import { fmtDate } from "@/views/system/format";
@@ -13,9 +13,20 @@ export function FinancialProfilePage() {
   const auth = useAuth();
   const userId = auth.status === "authenticated" ? auth.user_id : "u_user";
 
-  const qIdentity = useQuery({ queryKey: ["identity", userId], queryFn: () => db.getFinancialIdentity(userId) });
-  const qInputs = useQuery({ queryKey: ["inputs", userId], queryFn: () => db.getInputs(userId) });
-  const qSnapshots = useQuery({ queryKey: ["snapshots", userId], queryFn: () => db.getSnapshots(userId) });
+  const qIdentity = useQuery({
+  queryKey: ["identity"],
+  queryFn: () => fice.getFinancialIdentity()
+});
+
+const qInputs = useQuery({
+  queryKey: ["inputs"],
+  queryFn: () => fice.getInputs()
+});
+
+const qSnapshots = useQuery({
+  queryKey: ["snapshots"],
+  queryFn: () => fice.getSnapshots()
+});
 
   return (
     <div className="space-y-5">

@@ -1,7 +1,7 @@
 import * as React from "react";
 import { useAuth } from "@/state/auth";
 import { useQuery } from "@tanstack/react-query";
-import * as db from "@/services/mockDb";
+import * as fice from "@/services/ficeApi";
 import { Timeline } from "@/components/common/Timeline";
 import { Drawer } from "@/components/common/Drawer";
 import { fmtDate } from "@/views/system/format";
@@ -10,8 +10,10 @@ import { Skeleton } from "@/components/common/Skeleton";
 export function SnapshotsPage() {
   const auth = useAuth();
   const userId = auth.status === "authenticated" ? auth.user_id : "u_user";
-  const q = useQuery({ queryKey: ["snapshots", userId], queryFn: () => db.getSnapshots(userId) });
-
+  const q = useQuery({
+    queryKey: ["snapshots"],
+    queryFn: () => fice.getSnapshots()
+  });
   const [openId, setOpenId] = React.useState<string | null>(null);
   const selected = (q.data ?? []).find((s) => s.id === openId) ?? null;
 

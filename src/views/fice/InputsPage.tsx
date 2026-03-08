@@ -1,7 +1,7 @@
 import * as React from "react";
 import { useAuth } from "@/state/auth";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import * as db from "@/services/mockDb";
+import * as fice from "@/services/ficeApi";
 import { DataTable } from "@/components/common/DataTable";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
@@ -24,20 +24,30 @@ export function InputsPage() {
   const userId = auth.status === "authenticated" ? auth.user_id : "u_user";
   const qc = useQueryClient();
 
-  const qInputs = useQuery({ queryKey: ["inputs", userId], queryFn: () => db.getInputs(userId) });
-
+ const qInputs = useQuery({
+    queryKey: ["inputs"],
+    queryFn: () => fice.getInputs()
+  });
   const mAdd = useMutation({
-    mutationFn: (payload: { input_type: any; input_value: string; reason?: string }) => db.addInput(userId, payload),
+    mutationFn: (payload: {
+      input_type: string;
+      input_value: string;
+      reason?: string;
+    }) => fice.addInput(payload),
     onSuccess: async () => {
-      toast.success("Input guardado", { description: "Se recalculó perfil + snapshot + auditoría (mock)." });
+      toast.success("Input guardado", {
+        description: "Se recalculó perfil + snapshot + auditoría.",
+      });
+
       await Promise.all([
-        qc.invalidateQueries({ queryKey: ["inputs", userId] }),
-        qc.invalidateQueries({ queryKey: ["identity", userId] }),
-        qc.invalidateQueries({ queryKey: ["snapshots", userId] }),
+        qc.invalidateQueries({ queryKey: ["inputs"] }),
+        qc.invalidateQueries({ queryKey: ["identity"] }),
+        qc.invalidateQueries({ queryKey: ["snapshots"] }),
         qc.invalidateQueries({ queryKey: ["audit"] }),
       ]);
     },
-    onError: (e: any) => toast.error("No se pudo guardar", { description: e?.message }),
+    onError: (e: any) =>
+      toast.error("No se pudo guardar", { description: e?.message }),
   });
 
   return (
