@@ -234,7 +234,7 @@ export function LoginPage() {
                     <Input
                       value={regFirstName}
                       onChange={(e) => setRegFirstName(e.target.value)}
-                      placeholder="Elias"
+                      placeholder="Nombres"
                       className="h-12 rounded-2xl border-white/10 bg-white/[0.03] text-white placeholder:text-white/35"
                     />
                   </div>
@@ -244,7 +244,7 @@ export function LoginPage() {
                     <Input
                       value={regLastName}
                       onChange={(e) => setRegLastName(e.target.value)}
-                      placeholder="Ravichagua"
+                      placeholder="Apellido"
                       className="h-12 rounded-2xl border-white/10 bg-white/[0.03] text-white placeholder:text-white/35"
                     />
                   </div>
@@ -254,7 +254,7 @@ export function LoginPage() {
                     <Input
                       value={regUsername}
                       onChange={(e) => setRegUsername(e.target.value)}
-                      placeholder="eravichagua"
+                      placeholder="Nombre de usuario"
                       className="h-12 rounded-2xl border-white/10 bg-white/[0.03] text-white placeholder:text-white/35"
                     />
                   </div>
@@ -265,7 +265,7 @@ export function LoginPage() {
                       type="number"
                       value={regAge}
                       onChange={(e) => setRegAge(e.target.value)}
-                      placeholder="20"
+                      placeholder="edad"
                       className="h-12 rounded-2xl border-white/10 bg-white/[0.03] text-white placeholder:text-white/35"
                     />
                   </div>
@@ -275,7 +275,7 @@ export function LoginPage() {
                     <Input
                       value={regEmail}
                       onChange={(e) => setRegEmail(e.target.value)}
-                      placeholder="correo@ejemplo.com"
+                      placeholder="Ponga su correo"
                       className="h-12 rounded-2xl border-white/10 bg-white/[0.03] text-white placeholder:text-white/35"
                     />
                   </div>
