@@ -117,7 +117,7 @@ export function Sidebar() {
             <>
               <div className="text-xs text-white/60">Cuenta</div>
               <div className="mt-1 text-sm font-semibold">
-                {auth.status === "authenticated" ? (auth.full_name ?? auth.email ?? "Mi cuenta") : "Invitado"}
+                {auth.status === "authenticated" ? (auth.full_name || auth.email || "Mi cuenta") : "Invitado"}
               </div>
               <div className="mt-1 text-xs text-white/45">
                 {auth.status === "authenticated" ? "Sesión activa" : "Inicia sesión para continuar"}

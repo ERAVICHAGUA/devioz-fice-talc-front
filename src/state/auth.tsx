@@ -1,47 +1,62 @@
 import React, { createContext, useContext, useEffect, useMemo, useState } from "react";
+import { authApi, type RegisterPayload } from "@/services/authApi";
 import type { Role } from "@/types/domain";
-import { authApi } from "@/services/authApi";
 
 type AuthState =
   | {
       status: "anonymous";
       token: null;
+      userId: null;
       user_id: null;
-      role: null;
       email: null;
+      firstName: null;
+      lastName: null;
+      username: null;
       full_name: null;
+      role: null;
     }
   | {
       status: "authenticated";
       token: string;
+      userId: string;
       user_id: string;
-      role: Role | "User";
       email: string;
+      firstName: string;
+      lastName: string;
+      username: string;
       full_name: string | null;
+      role: Role | "User";
     };
 
 type AuthContextValue = AuthState & {
   login: (email: string, password: string) => Promise<void>;
-  register: (email: string, password: string) => Promise<void>;
+  register: (payload: RegisterPayload) => Promise<void>;
   logout: () => Promise<void>;
 };
 
 const AuthContext = createContext<AuthContextValue | null>(null);
 const LS_KEY = "devioz.auth";
 
-/* ---------- Estado anónimo ---------- */
 function anonymousState(): AuthState {
   return {
     status: "anonymous",
     token: null,
+    userId: null,
     user_id: null,
-    role: null,
     email: null,
+    firstName: null,
+    lastName: null,
+    username: null,
     full_name: null,
+    role: null,
   };
 }
 
-/* ---------- Leer localStorage ---------- */
+function buildFullName(firstName?: string | null, lastName?: string | null) {
+  const value = [firstName ?? "", lastName ?? ""].join(" ").trim();
+  return value || null;
+}
+
 function readLS(): AuthState {
   try {
     const raw = localStorage.getItem(LS_KEY);
@@ -49,28 +64,46 @@ function readLS(): AuthState {
 
     const parsed = JSON.parse(raw) as {
       token?: string;
-      user_id?: string;
-      role?: Role | "User";
+      userId?: string | number;
+      user_id?: string | number;
       email?: string;
+      firstName?: string;
+      lastName?: string;
+      username?: string;
       full_name?: string | null;
+      role?: Role | "User";
     };
 
-    if (!parsed?.token) return anonymousState();
+    const resolvedUserId =
+      parsed.userId != null
+        ? String(parsed.userId)
+        : parsed.user_id != null
+        ? String(parsed.user_id)
+        : null;
+
+    if (!parsed?.token || !resolvedUserId) return anonymousState();
+
+    const firstName = parsed.firstName ?? "";
+    const lastName = parsed.lastName ?? "";
+    const fullName = parsed.full_name ?? buildFullName(firstName, lastName);
 
     return {
       status: "authenticated",
       token: parsed.token,
-      user_id: parsed.user_id ?? "me",
+      userId: resolvedUserId,
+      user_id: resolvedUserId,
+      email: parsed.email ?? "",
+      firstName,
+      lastName,
+      username: parsed.username ?? "",
+      full_name: fullName,
       role: (parsed.role ?? "User") as Role | "User",
-      email: parsed.email ?? "usuario@dineroh.pe",
-      full_name: parsed.full_name ?? null,
     };
   } catch {
     return anonymousState();
   }
 }
 
-/* ---------- Provider ---------- */
 export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [state, setState] = useState<AuthState>(anonymousState());
 
@@ -82,7 +115,6 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     return {
       ...state,
 
-      /* ---------- LOGIN ---------- */
       login: async (email, password) => {
         const data = await authApi.login(email, password);
 
@@ -90,33 +122,34 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           throw new Error("Respuesta inválida del servidor (sin token).");
         }
 
+        const firstName = data.firstName ?? "";
+        const lastName = data.lastName ?? "";
+        const resolvedUserId = String(data.userId);
+        const fullName = buildFullName(firstName, lastName);
+
         const next = {
           token: data.token,
-          user_id: data.user_id ?? "me",
-          role: (data.role ?? "User") as Role | "User",
-          email,           // usamos el email que el usuario escribió
-          full_name: null, // tu backend aún no manda nombre
+          userId: resolvedUserId,
+          user_id: resolvedUserId,
+          email: data.email ?? email,
+          firstName,
+          lastName,
+          username: data.username ?? "",
+          full_name: fullName,
+          role: "User" as Role | "User",
         };
 
         localStorage.setItem(LS_KEY, JSON.stringify(next));
         setState({ status: "authenticated", ...next });
       },
 
-      /* ---------- REGISTER ---------- */
-      register: async (email, password) => {
-        await authApi.register(email, password);
+      register: async (payload) => {
+        await authApi.register(payload);
       },
 
-      /* ---------- LOGOUT ---------- */
       logout: async () => {
-        try {
-          if (state.status === "authenticated") {
-            await authApi.logout().catch(() => null);
-          }
-        } finally {
-          localStorage.removeItem(LS_KEY);
-          setState(anonymousState());
-        }
+        localStorage.removeItem(LS_KEY);
+        setState(anonymousState());
       },
     };
   }, [state]);
@@ -124,7 +157,6 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
 }
 
-/* ---------- Hook ---------- */
 export function useAuth() {
   const ctx = useContext(AuthContext);
   if (!ctx) throw new Error("useAuth must be used within AuthProvider");
