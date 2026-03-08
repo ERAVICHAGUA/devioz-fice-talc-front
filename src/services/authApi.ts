@@ -1,24 +1,36 @@
-import { api } from "./http";
-import type { Role } from "@/types/domain";
+const BASE_URL = import.meta.env.VITE_TALC_BASE_URL;
 
-export type LoginRes = { token?: string; user_id?: string; role?: Role };
+export async function login(email: string, password: string) {
+  const res = await fetch(`${BASE_URL}/auth/login`, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json"
+    },
+    body: JSON.stringify({
+      email,
+      password
+    })
+  });
 
-export const authApi = {
-  login: (email: string, password: string) =>
-    api<LoginRes>("talc", "/auth/login", {
-      method: "POST",
-      body: JSON.stringify({ email, password }),
-    }),
+  if (!res.ok) {
+    throw new Error("Credenciales inválidas");
+  }
 
-  register: (email: string, password: string) =>
-    api<any>("talc", "/auth/register", {
-      method: "POST",
-      body: JSON.stringify({ email, password }),
-    }),
+  return res.json();
+}
 
-  // ✅ JWT logout real: borrar token local (no llamar al backend)
-  logout: async () => {
-    localStorage.removeItem("devioz.auth");
-    return null;
-  },
-};
+export async function register(data: any) {
+  const res = await fetch(`${BASE_URL}/auth/register`, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json"
+    },
+    body: JSON.stringify(data)
+  });
+
+  if (!res.ok) {
+    throw new Error("Error al registrar");
+  }
+
+  return res.json();
+}
