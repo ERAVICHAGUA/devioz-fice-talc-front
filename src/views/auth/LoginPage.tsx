@@ -1,5 +1,6 @@
 import * as React from "react";
 import { motion, AnimatePresence } from "framer-motion";
+import { Eye, EyeOff } from "lucide-react";
 import { useLocation, useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -29,8 +30,11 @@ export function LoginPage() {
   const [mode, setMode] = React.useState<Mode>("login");
   const [loading, setLoading] = React.useState(false);
 
-  const [email, setEmail] = React.useState("egrp21405@devioz.com");
-  const [password, setPassword] = React.useState("elias_21405");
+  const [showLoginPassword, setShowLoginPassword] = React.useState(false);
+  const [showRegisterPassword, setShowRegisterPassword] = React.useState(false);
+
+  const [email, setEmail] = React.useState("");
+  const [password, setPassword] = React.useState("");
 
   const [regFirstName, setRegFirstName] = React.useState("");
   const [regLastName, setRegLastName] = React.useState("");
@@ -94,6 +98,7 @@ export function LoginPage() {
       setRegAge("");
       setRegEmail("");
       setRegPassword("");
+      setShowRegisterPassword(false);
     } catch (err) {
       toast.error(errorToMessage(err));
     } finally {
@@ -194,13 +199,23 @@ export function LoginPage() {
 
                   <div className="space-y-2">
                     <Label className="text-white/75">Contraseña</Label>
-                    <Input
-                      type="password"
-                      value={password}
-                      onChange={(e) => setPassword(e.target.value)}
-                      placeholder="••••••••"
-                      className="h-12 rounded-2xl border-white/10 bg-white/[0.03] text-white placeholder:text-white/35"
-                    />
+                    <div className="relative">
+                      <Input
+                        type={showLoginPassword ? "text" : "password"}
+                        value={password}
+                        onChange={(e) => setPassword(e.target.value)}
+                        placeholder="••••••••"
+                        className="h-12 rounded-2xl border-white/10 bg-white/[0.03] pr-12 text-white placeholder:text-white/35"
+                      />
+                      <button
+                        type="button"
+                        onClick={() => setShowLoginPassword((v) => !v)}
+                        className="absolute right-3 top-1/2 -translate-y-1/2 text-white/55 transition hover:text-white"
+                        aria-label={showLoginPassword ? "Ocultar contraseña" : "Mostrar contraseña"}
+                      >
+                        {showLoginPassword ? <EyeOff size={18} /> : <Eye size={18} />}
+                      </button>
+                    </div>
                   </div>
 
                   <Button
@@ -244,7 +259,7 @@ export function LoginPage() {
                     <Input
                       value={regLastName}
                       onChange={(e) => setRegLastName(e.target.value)}
-                      placeholder="Apellido"
+                      placeholder="Apellidos"
                       className="h-12 rounded-2xl border-white/10 bg-white/[0.03] text-white placeholder:text-white/35"
                     />
                   </div>
@@ -265,7 +280,7 @@ export function LoginPage() {
                       type="number"
                       value={regAge}
                       onChange={(e) => setRegAge(e.target.value)}
-                      placeholder="edad"
+                      placeholder="Edad"
                       className="h-12 rounded-2xl border-white/10 bg-white/[0.03] text-white placeholder:text-white/35"
                     />
                   </div>
@@ -282,13 +297,23 @@ export function LoginPage() {
 
                   <div className="space-y-2">
                     <Label className="text-white/75">Contraseña</Label>
-                    <Input
-                      type="password"
-                      value={regPassword}
-                      onChange={(e) => setRegPassword(e.target.value)}
-                      placeholder="Crea una contraseña"
-                      className="h-12 rounded-2xl border-white/10 bg-white/[0.03] text-white placeholder:text-white/35"
-                    />
+                    <div className="relative">
+                      <Input
+                        type={showRegisterPassword ? "text" : "password"}
+                        value={regPassword}
+                        onChange={(e) => setRegPassword(e.target.value)}
+                        placeholder="Crea una contraseña"
+                        className="h-12 rounded-2xl border-white/10 bg-white/[0.03] pr-12 text-white placeholder:text-white/35"
+                      />
+                      <button
+                        type="button"
+                        onClick={() => setShowRegisterPassword((v) => !v)}
+                        className="absolute right-3 top-1/2 -translate-y-1/2 text-white/55 transition hover:text-white"
+                        aria-label={showRegisterPassword ? "Ocultar contraseña" : "Mostrar contraseña"}
+                      >
+                        {showRegisterPassword ? <EyeOff size={18} /> : <Eye size={18} />}
+                      </button>
+                    </div>
                   </div>
 
                   <Button

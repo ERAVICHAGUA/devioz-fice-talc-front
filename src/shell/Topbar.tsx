@@ -18,8 +18,8 @@ export function Topbar({ onGlobalSearch }: { onGlobalSearch: (q: string) => void
 
   const displayName =
     auth.status === "authenticated"
-      ? auth.full_name ?? auth.email ?? "Mi cuenta"
-      : "Invitado";
+      auth.full_name || auth.email || "Mi cuenta"
+       "Invitado";
   return (
     <div className="glass flex items-center justify-between gap-3 rounded-3xl px-4 py-3">
       <div className="relative w-full max-w-[560px]">

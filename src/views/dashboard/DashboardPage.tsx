@@ -73,7 +73,7 @@ export function DashboardPage() {
     queryFn: () => db.getFinancialIdentity(userId),
   });
   const qInputs = useQuery({ queryKey: ["inputs", userId], queryFn: () => db.getInputs(userId) });
-  const qSnapshots = useQuery({ queryKey: ["snapshots", userId], queryFn: () => db.getSnapshots(userId) });
+  const qSnapshots = useQuery({ queryKey: ["Historial", userId], queryFn: () => db.getSnapshots(userId) });
   const qAudit = useQuery({ queryKey: ["audit", auth.role], queryFn: () => db.getAuditEvents(auth.role === "Admin" ? undefined : userId) });
   const qIntegrity = useQuery({ queryKey: ["integrity"], queryFn: () => db.getIntegrityChecks() });
 
@@ -131,7 +131,11 @@ export function DashboardPage() {
       </div>
 
       <div className="grid grid-cols-1 gap-3 lg:grid-cols-3">
-        <KpiCard label="Sesión" value={auth.role ?? "—"} hint="Selector de contexto en Topbar (demo)" />
+        <KpiCard
+            label="Sesión"
+            value={`Hola ${auth.firstName ?? auth.username ?? "Usuario"}`}
+            hint="Tu espacio financiero está activo"
+          />
         <KpiCard
           label="Identidad actualizada"
           value={qIdentity.data ? formatDistanceToNowStrict(qIdentity.data.last_updated) : "—"}
@@ -247,7 +251,7 @@ function WidgetRenderer({
   if (k === "recent_snapshots") {
     return (
       <WidgetCard
-        title="Snapshots recientes"
+        title="Historial recientes"
         subtitle="financial_identity_snapshot"
         collapsed={collapsed}
         onToggleCollapse={onToggleCollapse}
