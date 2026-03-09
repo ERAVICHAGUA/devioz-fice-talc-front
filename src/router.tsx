@@ -7,7 +7,7 @@ import { LoginPage } from "@/views/auth/LoginPage";
 
 import { DashboardPage } from "@/views/dashboard/DashboardPage";
 import { FinancialProfilePage } from "@/views/fice/FinancialProfilePage";
-import { InputsPage } from "@/views/fice/InputsPage";
+//import { InputsPage } from "@/views/fice/InputsPage";
 import { SnapshotsPage } from "@/views/fice/SnapshotsPage";
 
 import { AuditPage } from "@/views/tacl/AuditPage";
