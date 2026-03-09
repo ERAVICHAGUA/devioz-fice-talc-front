@@ -43,7 +43,7 @@ export const router = createBrowserRouter([
       { path: "dashboard", element: <DashboardPage /> },
 
       { path: "fice/profile", element: <FinancialProfilePage /> },
-      { path: "fice/inputs", element: <InputsPage /> },
+//      { path: "fice/inputs", element: <InputsPage /> },
       { path: "fice/snapshots", element: <SnapshotsPage /> },
 
       { path: "tacl/audit", element: <AuditPage /> },
