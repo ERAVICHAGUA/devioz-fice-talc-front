@@ -16,6 +16,7 @@ export function FinancialProfilePage() {
     queryKey: ["identity", userId],
     queryFn: () => ficeApi.getFinancialIdentityByUserId(userId as number),
     enabled: !!userId,
+    retry: false,
   });
 
   return (
@@ -29,10 +30,13 @@ export function FinancialProfilePage() {
         </div>
 
         <div className="flex items-center gap-2">
-          <NavLink to="/app/fice/inputs">
-            <Button variant="secondary" size="sm">Actualizar perfil</Button>
+          <NavLink to="/app/finance/inputs">
+            <Button variant="secondary" size="sm">
+              Actualizar perfil
+            </Button>
           </NavLink>
-          <NavLink to="/app/fice/snapshots">
+
+          <NavLink to="/app/system/snapshots">
             <Button size="sm">Historial</Button>
           </NavLink>
         </div>
