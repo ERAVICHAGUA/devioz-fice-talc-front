@@ -38,18 +38,24 @@ jobs:
         run: |
           gcloud auth configure-docker us-central1-docker.pkg.dev --quiet
 
-      # ✅ Verifica que los secrets existan (sin imprimir valores)
+      # ✅ Verifica que los secrets existan
       - name: Check required secrets exist
         run: |
           test -n "${{ secrets.VITE_TALC_BASE_URL }}" && echo "TALC secret OK" || (echo "TALC secret EMPTY" && exit 1)
           test -n "${{ secrets.VITE_FICE_BASE_URL }}" && echo "FICE secret OK" || (echo "FICE secret EMPTY" && exit 1)
+          test -n "${{ secrets.VITE_TIIE_BASE_URL }}" && echo "TIIE secret OK" || (echo "TIIE secret EMPTY" && exit 1)
+          test -n "${{ secrets.VITE_CRFE_BASE_URL }}" && echo "CRFE secret OK" || (echo "CRFE secret EMPTY" && exit 1)
+          test -n "${{ secrets.VITE_DSE_BASE_URL }}" && echo "DSE secret OK" || (echo "DSE secret EMPTY" && exit 1)
 
-      # ✅ Build sin cache + tags SHA y latest
+      # ✅ Build Docker image
       - name: Build Docker image
         run: |
           docker build --no-cache \
             --build-arg VITE_TALC_BASE_URL=${{ secrets.VITE_TALC_BASE_URL }} \
             --build-arg VITE_FICE_BASE_URL=${{ secrets.VITE_FICE_BASE_URL }} \
+            --build-arg VITE_TIIE_BASE_URL=${{ secrets.VITE_TIIE_BASE_URL }} \
+            --build-arg VITE_CRFE_BASE_URL=${{ secrets.VITE_CRFE_BASE_URL }} \
+            --build-arg VITE_DSE_BASE_URL=${{ secrets.VITE_DSE_BASE_URL }} \
             -t us-central1-docker.pkg.dev/$PROJECT_ID/$REPOSITORY/$IMAGE_NAME:$GITHUB_SHA \
             -t us-central1-docker.pkg.dev/$PROJECT_ID/$REPOSITORY/$IMAGE_NAME:latest \
             .
