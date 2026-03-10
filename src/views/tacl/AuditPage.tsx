@@ -1,11 +1,14 @@
 import * as React from "react";
 import { useAuth } from "@/state/auth";
 import { useQuery } from "@tanstack/react-query";
-import * as db from "@/services/mockDb";
 import { DataTable } from "@/components/common/DataTable";
 import { Drawer } from "@/components/common/Drawer";
 import { fmtDate } from "@/views/system/format";
 import { Button } from "@/components/ui/button";
+
+const db = {
+  getAuditEvents: async (_userId?: string | number) => [],
+};
 
 export function AuditPage() {
   const auth = useAuth();
@@ -17,32 +20,34 @@ export function AuditPage() {
   });
 
   const [openId, setOpenId] = React.useState<string | null>(null);
-  const selected = (q.data ?? []).find((e) => e.id === openId) ?? null;
+  const selected = ((q.data as any[]) ?? []).find((e: any) => e.id === openId) ?? null;
 
-  const isForbidden = auth.role !== "Admin" && auth.role !== "User"; // demo only
+  const isForbidden = auth.role !== "Admin" && auth.role !== "User";
 
   if (isForbidden) return <AuditState code={403} />;
 
   return (
     <div className="space-y-5">
       <div>
-        <div className="text-lg font-semibold tracking-tight">TACL • Auditoría</div>
-        <div className="mt-1 text-sm text-white/60">Tabla de eventos con filtros + drawer con detalle.</div>
+        <div className="text-lg font-semibold tracking-tight">Sistema • Auditoría</div>
+        <div className="mt-1 text-sm text-white/60">
+          Tabla de eventos con filtros + drawer con detalle.
+        </div>
       </div>
 
       <DataTable
-        rows={q.data ?? []}
+        rows={(q.data as any[]) ?? []}
         getRowId={(r) => (r as any).id}
         columns={[
-          { key: "action", header: "Acción", render: (r) => <span className="font-medium">{(r as any).action}</span> },
-          { key: "actor", header: "Actor", render: (r) => <span className="text-white/70">{(r as any).actor}</span> },
-          { key: "entity", header: "Entidad", render: (r) => (r as any).entity },
-          { key: "date", header: "Fecha", render: (r) => <span className="text-white/60">{fmtDate((r as any).created_at)}</span> },
+          { key: "action", header: "Acción", render: (r: any) => <span className="font-medium">{r.action}</span> },
+          { key: "actor", header: "Actor", render: (r: any) => <span className="text-white/70">{r.actor}</span> },
+          { key: "entity", header: "Entidad", render: (r: any) => r.entity },
+          { key: "date", header: "Fecha", render: (r: any) => <span className="text-white/60">{fmtDate(r.created_at)}</span> },
           {
             key: "view",
             header: "",
-            render: (r) => (
-              <Button variant="secondary" size="sm" onClick={() => setOpenId((r as any).id)}>
+            render: (r: any) => (
+              <Button variant="secondary" size="sm" onClick={() => setOpenId(r.id)}>
                 Ver
               </Button>
             ),
@@ -63,17 +68,26 @@ export function AuditPage() {
             <div className="rounded-2xl border border-white/10 bg-white/5 p-4">
               <div className="text-xs text-white/60">Quién / cuándo / qué</div>
               <div className="mt-2 text-sm text-white/80">
-                <div>Actor: <span className="text-white">{selected.actor}</span></div>
-                <div>User ID: <span className="text-white">{selected.user_id}</span></div>
-                <div>Entidad: <span className="text-white">{selected.entity}</span> {selected.entity_id ? `• ${selected.entity_id}` : ""}</div>
-                <div>Acción: <span className="text-accent">{selected.action}</span></div>
+                <div>
+                  Actor: <span className="text-white">{selected.actor}</span>
+                </div>
+                <div>
+                  User ID: <span className="text-white">{selected.user_id}</span>
+                </div>
+                <div>
+                  Entidad: <span className="text-white">{selected.entity}</span>{" "}
+                  {selected.entity_id ? `• ${selected.entity_id}` : ""}
+                </div>
+                <div>
+                  Acción: <span className="text-accent">{selected.action}</span>
+                </div>
               </div>
             </div>
 
             <div className="rounded-2xl border border-white/10 bg-white/5 p-4">
               <div className="text-xs text-white/60">Meta</div>
               <pre className="mt-3 overflow-auto rounded-2xl bg-black/40 p-4 text-xs text-white/75 scrollbar-thin">
-{JSON.stringify(selected.meta ?? {}, null, 2)}
+                {JSON.stringify(selected.meta ?? {}, null, 2)}
               </pre>
             </div>
           </div>

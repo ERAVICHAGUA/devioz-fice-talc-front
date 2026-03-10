@@ -1,7 +1,6 @@
 import * as React from "react";
 import { useAuth } from "@/state/auth";
 import { useQuery } from "@tanstack/react-query";
-import * as db from "@/services/mockDb";
 import { KpiCard } from "@/components/common/KpiCard";
 import { Skeleton } from "@/components/common/Skeleton";
 import { WidgetCard } from "@/components/common/WidgetCard";
@@ -16,6 +15,15 @@ import { Button } from "@/components/ui/button";
 import { NavLink } from "react-router-dom";
 
 const LS_KEY = "devioz.dashboard.layout.v1";
+
+// temporal mientras conectamos APIs reales
+const db = {
+  getFinancialIdentity: async (_userId?: string | number) => null,
+  getInputs: async (_userId?: string | number) => [],
+  getSnapshots: async (_userId?: string | number) => [],
+  getAuditEvents: async (_userId?: string | number) => [],
+  getIntegrityChecks: async () => [],
+};
 
 function readLayout(fallback: DashboardLayout): DashboardLayout {
   try {
@@ -61,7 +69,6 @@ export function DashboardPage() {
   const [layout, setLayout] = React.useState<DashboardLayout>(() => readLayout(fallback));
 
   React.useEffect(() => {
-    // if role changes and no custom layout saved, adapt
     const raw = localStorage.getItem(LS_KEY);
     if (!raw) setLayout(fallback);
   }, [fallback]);
@@ -72,10 +79,26 @@ export function DashboardPage() {
     queryKey: ["identity", userId],
     queryFn: () => db.getFinancialIdentity(userId),
   });
-  const qInputs = useQuery({ queryKey: ["inputs", userId], queryFn: () => db.getInputs(userId) });
-  const qSnapshots = useQuery({ queryKey: ["Historial", userId], queryFn: () => db.getSnapshots(userId) });
-  const qAudit = useQuery({ queryKey: ["audit", auth.role], queryFn: () => db.getAuditEvents(auth.role === "Admin" ? undefined : userId) });
-  const qIntegrity = useQuery({ queryKey: ["integrity"], queryFn: () => db.getIntegrityChecks() });
+
+  const qInputs = useQuery({
+    queryKey: ["inputs", userId],
+    queryFn: () => db.getInputs(userId),
+  });
+
+  const qSnapshots = useQuery({
+    queryKey: ["historial", userId],
+    queryFn: () => db.getSnapshots(userId),
+  });
+
+  const qAudit = useQuery({
+    queryKey: ["audit", auth.role, userId],
+    queryFn: () => db.getAuditEvents(auth.role === "Admin" ? undefined : userId),
+  });
+
+  const qIntegrity = useQuery({
+    queryKey: ["integrity"],
+    queryFn: () => db.getIntegrityChecks(),
+  });
 
   const ids = layout.widgets.map((w) => w.key);
 
@@ -113,35 +136,50 @@ export function DashboardPage() {
     toast.success("Layout reseteado");
   };
 
+  const identityLastUpdated =
+  (qIdentity.data as any)?.last_updated
+    ? formatDistanceToNowStrict((qIdentity.data as any).last_updated)
+    : "—";
+    
   return (
     <div className="space-y-5">
       <div className="flex items-start justify-between gap-3">
         <div>
           <div className="text-lg font-semibold tracking-tight">Dashboard</div>
-          <div className="mt-1 text-sm text-white/60">Widgets flotantes • Reordenables • Guardados en localStorage</div>
+          <div className="mt-1 text-sm text-white/60">
+            Widgets flotantes • Reordenables • Guardados en localStorage
+          </div>
         </div>
+
         <div className="flex items-center gap-2">
           <Button variant="secondary" size="sm" onClick={resetLayout}>
             Reset layout
           </Button>
-          <NavLink to="/fice/profile">
-            <Button size="sm">Ir a FICE</Button>
+
+          <NavLink to="/app/finance/profile">
+            <Button size="sm">Ir a perfil</Button>
           </NavLink>
         </div>
       </div>
 
       <div className="grid grid-cols-1 gap-3 lg:grid-cols-3">
         <KpiCard
-            label="Sesión"
-            value={`Hola ${auth.firstName ?? auth.username ?? "Usuario"}`}
-            hint="Tu espacio financiero está activo"
-          />
-        <KpiCard
+          label="Sesión"
+          value={`Hola ${auth.firstName ?? auth.username ?? "Usuario"}`}
+          hint="Tu espacio financiero está activo"
+        />
+
+       <KpiCard
           label="Identidad actualizada"
-          value={qIdentity.data ? formatDistanceToNowStrict(qIdentity.data.last_updated) : "—"}
+          value={identityLastUpdated}
           hint="Basado en financial_identity.last_updated"
         />
-        <KpiCard label="Integridad" value={qIntegrity.data?.[0]?.status ?? "—"} hint="Último check (mock)" />
+
+        <KpiCard
+          label="Integridad"
+          value={(qIntegrity.data as any[])?.[0]?.status ?? "—"}
+          hint="Último check"
+        />
       </div>
 
       <DndContext collisionDetection={closestCenter} onDragEnd={onDragEnd}>
@@ -200,14 +238,17 @@ function WidgetRenderer({
             <Skeleton className="h-16" />
             <Skeleton className="h-16" />
           </div>
-        ) : q.qIdentity.isError ? (
-          <Empty title="Sin identidad" description="Este usuario no tiene financial_identity." />
+        ) : q.qIdentity.isError || !q.qIdentity.data ? (
+          <Empty title="Sin identidad" description="Este usuario no tiene identidad financiera." />
         ) : (
           <div className="grid grid-cols-2 gap-3">
-            <KpiCard label="Income type" value={q.qIdentity.data?.income_type ?? "-"} />
-            <KpiCard label="Stability" value={`${q.qIdentity.data.income_stability_score}/100`} />
-            <KpiCard label="Risk" value={q.qIdentity.data.risk_tolerance} />
-            <KpiCard label="Decision style" value={q.qIdentity.data.decision_style} />
+            <KpiCard label="Income type" value={(q.qIdentity.data as any)?.income_type ?? "-"} />
+            <KpiCard
+              label="Stability"
+              value={`${(q.qIdentity.data as any)?.income_stability_score ?? "-"}/100`}
+            />
+            <KpiCard label="Risk" value={(q.qIdentity.data as any)?.risk_tolerance ?? "-"} />
+            <KpiCard label="Decision style" value={(q.qIdentity.data as any)?.decision_style ?? "-"} />
           </div>
         )}
       </WidgetCard>
@@ -232,16 +273,23 @@ function WidgetRenderer({
           </div>
         ) : (
           <div className="space-y-2">
-            {(q.qInputs.data ?? []).slice(0, 5).map((i: any) => (
-              <div key={i.id} className="flex items-center justify-between rounded-2xl border border-white/10 bg-white/5 px-3 py-2">
+            {((q.qInputs.data as any[]) ?? []).slice(0, 5).map((i: any) => (
+              <div
+                key={i.id}
+                className="flex items-center justify-between rounded-2xl border border-white/10 bg-white/5 px-3 py-2"
+              >
                 <div className="text-sm">
                   <span className="text-white/60">{i.input_type}</span>{" "}
                   <span className="font-semibold">{i.input_value}</span>
                 </div>
-                <div className="text-xs text-white/45">{formatDistanceToNowStrict(i.created_at)}</div>
+                <div className="text-xs text-white/45">
+                  {i.created_at ? formatDistanceToNowStrict(i.created_at) : "—"}
+                </div>
               </div>
             ))}
-            {!(q.qInputs.data ?? []).length ? <Empty title="Sin inputs" description="Agrega el primer input desde FICE." /> : null}
+            {!((q.qInputs.data as any[]) ?? []).length ? (
+              <Empty title="Sin inputs" description="Agrega el primer input desde Inputs." />
+            ) : null}
           </div>
         )}
       </WidgetCard>
@@ -266,19 +314,29 @@ function WidgetRenderer({
           </div>
         ) : (
           <div className="space-y-2">
-            {(q.qSnapshots.data ?? []).slice(0, 4).map((s: any) => (
+            {((q.qSnapshots.data as any[]) ?? []).slice(0, 4).map((s: any) => (
               <div key={s.id} className="rounded-2xl border border-white/10 bg-white/5 p-3">
                 <div className="flex items-center justify-between gap-3">
                   <div className="text-sm font-semibold">{s.change_reason ?? "Snapshot"}</div>
-                  <div className="text-xs text-white/45">{formatDistanceToNowStrict(s.created_at)}</div>
+                  <div className="text-xs text-white/45">
+                    {s.created_at ? formatDistanceToNowStrict(s.created_at) : "—"}
+                  </div>
                 </div>
                 <div className="mt-2 text-xs text-white/55">
-                  Stability: <span className="text-white/80">{(s.snapshot_data as any).income_stability_score}</span> • Risk:{" "}
-                  <span className="text-white/80">{(s.snapshot_data as any).risk_tolerance}</span>
+                  Stability:{" "}
+                  <span className="text-white/80">
+                    {s.snapshot_data?.income_stability_score ?? "-"}
+                  </span>{" "}
+                  • Risk:{" "}
+                  <span className="text-white/80">
+                    {s.snapshot_data?.risk_tolerance ?? "-"}
+                  </span>
                 </div>
               </div>
             ))}
-            {!(q.qSnapshots.data ?? []).length ? <Empty title="Sin snapshots" description="Se generan al guardar inputs." /> : null}
+            {!((q.qSnapshots.data as any[]) ?? []).length ? (
+              <Empty title="Sin snapshots" description="Se generarán cuando conectemos esa vista." />
+            ) : null}
           </div>
         )}
       </WidgetCard>
@@ -303,29 +361,35 @@ function WidgetRenderer({
           </div>
         ) : (
           <div className="space-y-2">
-            {(q.qAudit.data ?? []).slice(0, 6).map((e: any) => (
-              <div key={e.id} className="flex items-center justify-between rounded-2xl border border-white/10 bg-white/5 px-3 py-2">
+            {((q.qAudit.data as any[]) ?? []).slice(0, 6).map((e: any) => (
+              <div
+                key={e.id}
+                className="flex items-center justify-between rounded-2xl border border-white/10 bg-white/5 px-3 py-2"
+              >
                 <div className="min-w-0">
                   <div className="truncate text-sm font-semibold">{e.action}</div>
                   <div className="truncate text-xs text-white/55">
                     {e.actor} • {e.entity}
                   </div>
                 </div>
-                <div className="shrink-0 text-xs text-white/45">{formatDistanceToNowStrict(e.created_at)}</div>
+                <div className="shrink-0 text-xs text-white/45">
+                  {e.created_at ? formatDistanceToNowStrict(e.created_at) : "—"}
+                </div>
               </div>
             ))}
-            {!(q.qAudit.data ?? []).length ? <Empty title="Sin eventos" description="Aparecerán acciones del sistema y usuarios." /> : null}
+            {!((q.qAudit.data as any[]) ?? []).length ? (
+              <Empty title="Sin eventos" description="Aparecerán acciones del sistema y usuarios." />
+            ) : null}
           </div>
         )}
       </WidgetCard>
     );
   }
 
-  // integrity_status
   return (
     <WidgetCard
       title="Integridad"
-      subtitle="TACL Integrity"
+      subtitle="Sistema"
       collapsed={collapsed}
       onToggleCollapse={onToggleCollapse}
       onRemove={onRemove}
@@ -338,18 +402,30 @@ function WidgetRenderer({
           <div className="flex items-center justify-between rounded-2xl border border-white/10 bg-white/5 p-3">
             <div>
               <div className="text-xs text-white/60">Status</div>
-              <div className={cn("mt-1 text-lg font-semibold", q.qIntegrity.data?.[0]?.status === "WARN" ? "text-yellow-200" : "text-accent")}>
-                {q.qIntegrity.data?.[0]?.status ?? "—"}
+              <div
+                className={cn(
+                  "mt-1 text-lg font-semibold",
+                  (q.qIntegrity.data as any[])?.[0]?.status === "WARN"
+                    ? "text-yellow-200"
+                    : "text-accent"
+                )}
+              >
+                {(q.qIntegrity.data as any[])?.[0]?.status ?? "—"}
               </div>
             </div>
-            <NavLink to="/tacl/integrity">
+
+            <NavLink to="/app/system/integrity">
               <Button variant="secondary" size="sm">
                 Ver detalles
               </Button>
             </NavLink>
           </div>
+
           <div className="text-xs text-white/55">
-            Último check: {q.qIntegrity.data?.[0] ? formatDistanceToNowStrict(q.qIntegrity.data[0].created_at) : "—"}
+            Último check:{" "}
+            {(q.qIntegrity.data as any[])?.[0]?.created_at
+              ? formatDistanceToNowStrict((q.qIntegrity.data as any[])[0].created_at)
+              : "—"}
           </div>
         </div>
       )}
