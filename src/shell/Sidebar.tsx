@@ -13,12 +13,11 @@ export function Sidebar() {
   const auth = useAuth();
 
   const groups = React.useMemo(() => {
-    const visible = NAV.filter((i) => (i.group === "Admin" ? auth.role === "Admin" : true));
-    return Array.from(new Set(visible.map((v) => v.group))).map((g) => ({
-      group: g,
-      items: visible.filter((x) => x.group === g),
-    }));
-  }, [auth.role]);
+  return Array.from(new Set(NAV.map((v) => v.group))).map((g) => ({
+    group: g,
+    items: NAV.filter((x) => x.group === g),
+  }));
+}, []);
 
   const toggle = () => {
     setCollapsed((c) => {

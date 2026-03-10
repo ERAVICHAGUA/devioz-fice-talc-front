@@ -1,232 +1,371 @@
 import * as React from "react";
-import { useAuth } from "@/state/auth";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { ficeApi } from "@/services/ficeApi";
-import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
 import { toast } from "sonner";
 
-const INCOME_TYPES = [
-  { value: "SALARY", label: "Salario" },
-  { value: "FREELANCE", label: "Independiente" },
-  { value: "BUSINESS", label: "Negocio" },
-  { value: "OTHER", label: "Otro" },
-] as const;
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Input } from "@/components/ui/input";
+import { Button } from "@/components/ui/button";
+import { Label } from "@/components/ui/label";
 
-const RISK_TOLERANCES = [
-  { value: "LOW", label: "Baja" },
-  { value: "MEDIUM", label: "Media" },
-  { value: "HIGH", label: "Alta" },
-] as const;
-
-const DECISION_STYLES = [
-  { value: "CONSERVATIVE", label: "Conservador" },
-  { value: "ANALYTICAL", label: "Analítico" },
-  { value: "AGGRESSIVE", label: "Agresivo" },
-] as const;
+import { useAuth } from "@/state/auth";
+import {
+  ficeApi,
+  type CreateFinancialIdentityRequest,
+  type UpdateFinancialIdentityRequest,
+} from "@/services/ficeApi";
+import { tiieApi } from "@/services/tiieApi";
 
 export function InputsPage() {
   const auth = useAuth();
-  const userId = auth.status === "authenticated" ? Number(auth.user_id) : null;
   const qc = useQueryClient();
 
-  const qIdentity = useQuery({
-    queryKey: ["identity", userId],
-    queryFn: () => ficeApi.getFinancialIdentityByUserId(userId as number),
+  const userId = auth.userId ? Number(auth.userId) : null;
+
+  const [incomeType, setIncomeType] = React.useState("SALARY");
+  const [incomeStabilityScore, setIncomeStabilityScore] = React.useState("80");
+  const [riskTolerance, setRiskTolerance] = React.useState("MEDIUM");
+  const [decisionStyle, setDecisionStyle] = React.useState("ANALYTICAL");
+
+  const [txType, setTxType] = React.useState<"income" | "expense">("expense");
+  const [amount, setAmount] = React.useState("");
+  const [currency, setCurrency] = React.useState("PEN");
+  const [rawDescription, setRawDescription] = React.useState("");
+  const [merchantRaw, setMerchantRaw] = React.useState("");
+  const [occurredAt, setOccurredAt] = React.useState("");
+
+  const {
+    data: identity,
+    isLoading,
+    isError,
+    error,
+  } = useQuery({
+    queryKey: ["financial-identity", userId],
+    queryFn: async () => {
+      if (!userId) {
+        throw new Error("No se encontró el usuario autenticado.");
+      }
+
+      return ficeApi.getFinancialIdentityByUserId(userId);
+    },
     enabled: !!userId,
     retry: false,
   });
 
-  const [incomeType, setIncomeType] = React.useState<string>("SALARY");
-  const [incomeStabilityScore, setIncomeStabilityScore] = React.useState<string>("80");
-  const [riskTolerance, setRiskTolerance] = React.useState<string>("MEDIUM");
-  const [decisionStyle, setDecisionStyle] = React.useState<string>("ANALYTICAL");
-
   React.useEffect(() => {
-    if (qIdentity.data) {
-      setIncomeType(qIdentity.data.incomeType ?? "SALARY");
-      setIncomeStabilityScore(
-        qIdentity.data.incomeStabilityScore != null
-          ? String(qIdentity.data.incomeStabilityScore)
-          : "80"
-      );
-      setRiskTolerance(qIdentity.data.riskTolerance ?? "MEDIUM");
-      setDecisionStyle(qIdentity.data.decisionStyle ?? "ANALYTICAL");
-    }
-  }, [qIdentity.data]);
+    if (!identity) return;
 
-  const mSave = useMutation({
+    setIncomeType(identity.incomeType ?? "SALARY");
+    setIncomeStabilityScore(String(identity.incomeStabilityScore ?? 80));
+    setRiskTolerance(identity.riskTolerance ?? "MEDIUM");
+    setDecisionStyle(identity.decisionStyle ?? "ANALYTICAL");
+  }, [identity]);
+
+  const saveIdentityMutation = useMutation({
     mutationFn: async () => {
-      if (!userId) throw new Error("No se encontró el usuario autenticado.");
+      if (!userId) {
+        throw new Error("No se encontró el usuario autenticado.");
+      }
 
-      const payload = {
+      const score = Number(incomeStabilityScore);
+
+      if (Number.isNaN(score) || score < 0 || score > 100) {
+        throw new Error("Income Stability Score debe estar entre 0 y 100.");
+      }
+
+      if (identity?.id) {
+        const payload: UpdateFinancialIdentityRequest = {
+          incomeType,
+          incomeStabilityScore: score,
+          riskTolerance,
+          decisionStyle,
+        };
+
+        return ficeApi.updateFinancialIdentity(userId, payload);
+      }
+
+      const payload: CreateFinancialIdentityRequest = {
+        userId,
         incomeType,
-        incomeStabilityScore: Number(incomeStabilityScore),
+        incomeStabilityScore: score,
         riskTolerance,
         decisionStyle,
       };
 
-      if (qIdentity.data) {
-        return ficeApi.updateFinancialIdentity(userId, payload);
-      }
-
-      return ficeApi.createFinancialIdentity({
-        userId,
-        ...payload,
-      });
+      return ficeApi.createFinancialIdentity(payload);
     },
     onSuccess: async () => {
-      toast.success(
-        qIdentity.data ? "Perfil actualizado" : "Perfil creado",
-        {
-          description: "La información financiera se guardó correctamente.",
-        }
-      );
+      toast.success("Perfil financiero guardado", {
+        description: "La información se actualizó correctamente.",
+      });
 
-      await Promise.all([
-        qc.invalidateQueries({ queryKey: ["identity", userId] }),
-        qc.invalidateQueries({ queryKey: ["snapshots"] }),
-      ]);
+      await qc.invalidateQueries({
+        queryKey: ["financial-identity", userId],
+      });
     },
     onError: (e: any) => {
-      toast.error("No se pudo guardar", {
+      toast.error("No se pudo guardar el perfil", {
         description: e?.message ?? "Ocurrió un error inesperado.",
       });
     },
   });
 
-  const submit = async (e: React.FormEvent) => {
-    e.preventDefault();
+  const createTransactionMutation = useMutation({
+    mutationFn: async () => {
+      if (!userId) {
+        throw new Error("No se encontró el usuario autenticado.");
+      }
 
-    const score = Number(incomeStabilityScore);
+      const parsedAmount = Number(amount);
 
-    if (Number.isNaN(score) || score < 0 || score > 100) {
-      toast.error("Score inválido", {
-        description: "La estabilidad debe estar entre 0 y 100.",
+      if (!amount || Number.isNaN(parsedAmount) || parsedAmount <= 0) {
+        throw new Error("Ingresa un monto válido.");
+      }
+
+      if (!rawDescription.trim()) {
+        throw new Error("Ingresa una descripción.");
+      }
+
+      return tiieApi.createTransaction({
+        userId,
+        type: txType,
+        amount: parsedAmount,
+        currency: currency.trim() || "PEN",
+        rawDescription: rawDescription.trim(),
+        merchantRaw: merchantRaw.trim(),
+        occurredAt: occurredAt
+          ? new Date(occurredAt).toISOString()
+          : new Date().toISOString(),
       });
-      return;
-    }
+    },
+    onSuccess: async () => {
+      toast.success("Movimiento registrado", {
+        description: "La transacción se guardó correctamente.",
+      });
 
-    await mSave.mutateAsync();
+      setAmount("");
+      setCurrency("PEN");
+      setRawDescription("");
+      setMerchantRaw("");
+      setOccurredAt("");
+
+      await qc.invalidateQueries({
+        queryKey: ["transactions", userId],
+      });
+    },
+    onError: (e: any) => {
+      toast.error("No se pudo registrar el movimiento", {
+        description: e?.message ?? "Ocurrió un error inesperado.",
+      });
+    },
+  });
+
+  const onSubmitIdentity = async (e: React.FormEvent<HTMLFormElement>) => {
+    e.preventDefault();
+    await saveIdentityMutation.mutateAsync();
+  };
+
+  const onSubmitTransaction = async (e: React.FormEvent<HTMLFormElement>) => {
+    e.preventDefault();
+    await createTransactionMutation.mutateAsync();
   };
 
   return (
-    <div className="space-y-5">
+    <div className="space-y-6">
       <div>
-        <div className="text-lg font-semibold tracking-tight">
-          Actualizar perfil
-        </div>
-        <div className="mt-1 text-sm text-white/60">
-          Completa tu información para crear o actualizar tu perfil financiero.
-        </div>
+        <h1 className="text-xl font-semibold text-white">Inputs</h1>
+        <p className="mt-1 text-sm text-white/60">
+          Configura tu perfil financiero y registra movimientos rápidos desde un solo lugar.
+        </p>
       </div>
 
       <Card className="p-0">
         <CardHeader>
-          <CardTitle>
-            {qIdentity.data ? "Editar perfil financiero" : "Crear perfil financiero"}
-          </CardTitle>
+          <CardTitle>Perfil financiero</CardTitle>
           <CardDescription>
-            Esta información se usa para construir tu perfil financiero.
+            Estos datos ayudan a personalizar tu identidad financiera.
           </CardDescription>
         </CardHeader>
 
         <CardContent className="pt-0">
-          {qIdentity.isLoading ? (
-            <div className="text-sm text-white/60">Cargando perfil...</div>
-          ) : (
-            <form onSubmit={submit} className="space-y-6">
-              <div className="space-y-2">
-                <Label>Tipo de ingreso</Label>
-                <div className="grid grid-cols-2 gap-2">
-                  {INCOME_TYPES.map((item) => (
-                    <button
-                      key={item.value}
-                      type="button"
-                      onClick={() => setIncomeType(item.value)}
-                      className={
-                        "rounded-2xl border px-3 py-2 text-sm transition " +
-                        (incomeType === item.value
-                          ? "border-accent/40 bg-accent/10 text-white"
-                          : "border-white/10 bg-white/5 text-white/70 hover:bg-white/10")
-                      }
-                    >
-                      {item.label}
-                    </button>
-                  ))}
-                </div>
-              </div>
+          {isLoading ? (
+            <p className="text-sm text-white/60">Cargando perfil financiero...</p>
+          ) : isError ? (
+            <p className="text-sm text-red-300">
+              {(error as Error)?.message || "No se pudo cargar el perfil financiero."}
+            </p>
+          ) : null}
 
-              <div className="space-y-2">
-                <Label>Estabilidad financiera (0 - 100)</Label>
-                <Input
-                  type="number"
-                  min={0}
-                  max={100}
-                  value={incomeStabilityScore}
-                  onChange={(e) => setIncomeStabilityScore(e.target.value)}
-                  placeholder="80"
-                />
-              </div>
-
-              <div className="space-y-2">
-                <Label>Tolerancia al riesgo</Label>
-                <div className="grid grid-cols-3 gap-2">
-                  {RISK_TOLERANCES.map((item) => (
-                    <button
-                      key={item.value}
-                      type="button"
-                      onClick={() => setRiskTolerance(item.value)}
-                      className={
-                        "rounded-2xl border px-3 py-2 text-sm transition " +
-                        (riskTolerance === item.value
-                          ? "border-accent/40 bg-accent/10 text-white"
-                          : "border-white/10 bg-white/5 text-white/70 hover:bg-white/10")
-                      }
-                    >
-                      {item.label}
-                    </button>
-                  ))}
-                </div>
-              </div>
-
-              <div className="space-y-2">
-                <Label>Estilo de decisión</Label>
-                <div className="grid grid-cols-3 gap-2">
-                  {DECISION_STYLES.map((item) => (
-                    <button
-                      key={item.value}
-                      type="button"
-                      onClick={() => setDecisionStyle(item.value)}
-                      className={
-                        "rounded-2xl border px-3 py-2 text-sm transition " +
-                        (decisionStyle === item.value
-                          ? "border-accent/40 bg-accent/10 text-white"
-                          : "border-white/10 bg-white/5 text-white/70 hover:bg-white/10")
-                      }
-                    >
-                      {item.label}
-                    </button>
-                  ))}
-                </div>
-              </div>
-
-              <Button
-                type="submit"
-                className="w-full"
-                disabled={mSave.isPending}
-                aria-busy={mSave.isPending}
+          <form onSubmit={onSubmitIdentity} className="space-y-4">
+            <div className="space-y-2">
+              <Label htmlFor="incomeType">Tipo de ingreso</Label>
+              <select
+                id="incomeType"
+                value={incomeType}
+                onChange={(e) => setIncomeType(e.target.value)}
+                className="h-10 w-full rounded-2xl border border-white/10 bg-white/5 px-3 text-sm text-white outline-none transition focus:border-white/20"
               >
-                {mSave.isPending
-                  ? "Guardando..."
-                  : qIdentity.data
-                  ? "Actualizar perfil"
-                  : "Crear perfil"}
-              </Button>
-            </form>
-          )}
+                <option value="SALARY">Salary</option>
+                <option value="FREELANCE">Freelance</option>
+                <option value="BUSINESS">Business</option>
+                <option value="OTHER">Other</option>
+              </select>
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="incomeStabilityScore">Estabilidad de ingresos (0 - 100)</Label>
+              <Input
+                id="incomeStabilityScore"
+                type="number"
+                min={0}
+                max={100}
+                value={incomeStabilityScore}
+                onChange={(e) => setIncomeStabilityScore(e.target.value)}
+                placeholder="80"
+              />
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="riskTolerance">Tolerancia al riesgo</Label>
+              <select
+                id="riskTolerance"
+                value={riskTolerance}
+                onChange={(e) => setRiskTolerance(e.target.value)}
+                className="h-10 w-full rounded-2xl border border-white/10 bg-white/5 px-3 text-sm text-white outline-none transition focus:border-white/20"
+              >
+                <option value="LOW">Low</option>
+                <option value="MEDIUM">Medium</option>
+                <option value="HIGH">High</option>
+              </select>
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="decisionStyle">Estilo de decisión</Label>
+              <select
+                id="decisionStyle"
+                value={decisionStyle}
+                onChange={(e) => setDecisionStyle(e.target.value)}
+                className="h-10 w-full rounded-2xl border border-white/10 bg-white/5 px-3 text-sm text-white outline-none transition focus:border-white/20"
+              >
+                <option value="ANALYTICAL">Analytical</option>
+                <option value="CONSERVATIVE">Conservative</option>
+                <option value="AGGRESSIVE">Aggressive</option>
+              </select>
+            </div>
+
+            <Button
+              type="submit"
+              className="w-full"
+              disabled={saveIdentityMutation.isPending || !userId}
+              aria-busy={saveIdentityMutation.isPending}
+            >
+              {saveIdentityMutation.isPending ? "Guardando..." : "Guardar perfil financiero"}
+            </Button>
+          </form>
+        </CardContent>
+      </Card>
+
+      <Card className="p-0">
+        <CardHeader>
+          <CardTitle>Registro rápido</CardTitle>
+          <CardDescription>
+            Agrega un ingreso o gasto para alimentar tus movimientos financieros.
+          </CardDescription>
+        </CardHeader>
+
+        <CardContent className="pt-0">
+          <form onSubmit={onSubmitTransaction} className="space-y-4">
+            <div className="space-y-2">
+              <Label>Tipo de movimiento</Label>
+              <div className="grid grid-cols-2 gap-2">
+                <button
+                  type="button"
+                  onClick={() => setTxType("income")}
+                  className={
+                    "rounded-2xl border px-3 py-2 text-sm transition " +
+                    (txType === "income"
+                      ? "border-white/20 bg-white/15 text-white"
+                      : "border-white/10 bg-white/5 text-white/70 hover:bg-white/10")
+                  }
+                >
+                  Ingreso
+                </button>
+
+                <button
+                  type="button"
+                  onClick={() => setTxType("expense")}
+                  className={
+                    "rounded-2xl border px-3 py-2 text-sm transition " +
+                    (txType === "expense"
+                      ? "border-white/20 bg-white/15 text-white"
+                      : "border-white/10 bg-white/5 text-white/70 hover:bg-white/10")
+                  }
+                >
+                  Gasto
+                </button>
+              </div>
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="amount">Monto</Label>
+              <Input
+                id="amount"
+                type="number"
+                step="0.01"
+                value={amount}
+                onChange={(e) => setAmount(e.target.value)}
+                placeholder="Ej. 150.00"
+              />
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="currency">Moneda</Label>
+              <Input
+                id="currency"
+                value={currency}
+                onChange={(e) => setCurrency(e.target.value)}
+                placeholder="PEN"
+              />
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="rawDescription">Descripción</Label>
+              <Input
+                id="rawDescription"
+                value={rawDescription}
+                onChange={(e) => setRawDescription(e.target.value)}
+                placeholder="Ej. Compra en bodega"
+              />
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="merchantRaw">Comercio o fuente</Label>
+              <Input
+                id="merchantRaw"
+                value={merchantRaw}
+                onChange={(e) => setMerchantRaw(e.target.value)}
+                placeholder="Ej. Bodega Don Pepe / Empresa ABC"
+              />
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="occurredAt">Fecha y hora</Label>
+              <Input
+                id="occurredAt"
+                type="datetime-local"
+                value={occurredAt}
+                onChange={(e) => setOccurredAt(e.target.value)}
+              />
+            </div>
+
+            <Button
+              type="submit"
+              className="w-full"
+              disabled={createTransactionMutation.isPending || !userId}
+              aria-busy={createTransactionMutation.isPending}
+            >
+              {createTransactionMutation.isPending ? "Guardando..." : "Registrar movimiento"}
+            </Button>
+          </form>
         </CardContent>
       </Card>
     </div>

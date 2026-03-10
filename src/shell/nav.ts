@@ -1,16 +1,36 @@
-import { LayoutDashboard, Fingerprint, ShieldCheck, Users, ActivitySquare, FileSearch, ClipboardCheck } from "lucide-react";
+import {
+  LayoutDashboard,
+  Fingerprint,
+  ShieldCheck,
+  ActivitySquare,
+  FileSearch,
+  ClipboardCheck,
+  Wallet,
+  LineChart,
+  Sparkles,
+} from "lucide-react";
 
-export type NavItem = { label: string; to: string; icon: any; group: "Core" | "FICE" | "TACL" | "Admin" };
+export type NavGroup = "Core" | "Finanzas" | "Análisis" | "Sistema";
+
+export type NavItem = {
+  label: string;
+  to: string;
+  icon: any;
+  group: NavGroup;
+};
 
 export const NAV: NavItem[] = [
-  { label: "Dashboard", to: "/dashboard", icon: LayoutDashboard, group: "Core" },
+  { label: "Dashboard", to: "/app/dashboard", icon: LayoutDashboard, group: "Core" },
 
-  { label: "Perfil Financiero", to: "/fice/profile", icon: Fingerprint, group: "FICE" },
-  { label: "Inputs", to: "/fice/inputs", icon: FileSearch, group: "FICE" },
-  { label: "Snapshots", to: "/fice/snapshots", icon: ClipboardCheck, group: "FICE" },
+  { label: "Registro financiero", to: "/app/finance/inputs", icon: FileSearch, group: "Finanzas" },
+  { label: "Movimientos", to: "/app/finance/transactions", icon: Wallet, group: "Finanzas" },
+  { label: "Perfil financiero", to: "/app/finance/profile", icon: Fingerprint, group: "Finanzas" },
 
-  { label: "Auditoría", to: "/tacl/audit", icon: ActivitySquare, group: "TACL" },
-  { label: "Integridad", to: "/tacl/integrity", icon: ShieldCheck, group: "TACL" },
+  { label: "Proyecciones", to: "/app/analysis/forecast", icon: LineChart, group: "Análisis" },
+  { label: "Simulaciones", to: "/app/analysis/simulations", icon: Sparkles, group: "Análisis" },
 
-  { label: "Usuarios", to: "/admin/users", icon: Users, group: "Admin" },
+  { label: "Auditoría", to: "/app/system/audit", icon: ActivitySquare, group: "Sistema" },
+  { label: "Integridad", to: "/app/system/integrity", icon: ShieldCheck, group: "Sistema" },
+
+  { label: "Snapshots", to: "/app/system/snapshots", icon: ClipboardCheck, group: "Sistema" },
 ];

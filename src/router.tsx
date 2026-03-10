@@ -17,17 +17,27 @@ import { NotFoundPage } from "@/views/system/NotFoundPage";
 import { ErrorBoundaryPage } from "@/views/system/ErrorBoundaryPage";
 import { ProtectedRoute } from "@/views/system/ProtectedRoute";
 
+function ComingSoonPage({ title }: { title: string }) {
+  return (
+    <div className="space-y-2">
+      <h1 className="text-xl font-semibold">{title}</h1>
+      <p className="text-sm text-white/60">Esta sección estará conectada en la siguiente fase.</p>
+    </div>
+  );
+}
+
 export const router = createBrowserRouter([
   { path: "/", element: <LandingPage />, errorElement: <ErrorBoundaryPage /> },
   { path: "/login", element: <LoginPage />, errorElement: <ErrorBoundaryPage /> },
 
-  // redirects por si entras a rutas antiguas
   { path: "/dashboard", element: <Navigate to="/app/dashboard" replace /> },
-  { path: "/fice/profile", element: <Navigate to="/app/fice/profile" replace /> },
-  { path: "/fice/inputs", element: <Navigate to="/app/fice/inputs" replace /> },
-  { path: "/fice/snapshots", element: <Navigate to="/app/fice/snapshots" replace /> },
-  { path: "/tacl/audit", element: <Navigate to="/app/tacl/audit" replace /> },
-  { path: "/tacl/integrity", element: <Navigate to="/app/tacl/integrity" replace /> },
+
+  { path: "/fice/profile", element: <Navigate to="/app/finance/profile" replace /> },
+  { path: "/fice/inputs", element: <Navigate to="/app/finance/inputs" replace /> },
+  { path: "/fice/snapshots", element: <Navigate to="/app/system/snapshots" replace /> },
+
+  { path: "/tacl/audit", element: <Navigate to="/app/system/audit" replace /> },
+  { path: "/tacl/integrity", element: <Navigate to="/app/system/integrity" replace /> },
 
   {
     path: "/app",
@@ -42,12 +52,16 @@ export const router = createBrowserRouter([
 
       { path: "dashboard", element: <DashboardPage /> },
 
-      { path: "fice/profile", element: <FinancialProfilePage /> },
-      { path: "fice/inputs", element: <InputsPage /> },
-      { path: "fice/snapshots", element: <SnapshotsPage /> },
+      { path: "finance/profile", element: <FinancialProfilePage /> },
+      { path: "finance/inputs", element: <InputsPage /> },
+      { path: "finance/transactions", element: <ComingSoonPage title="Movimientos" /> },
 
-      { path: "tacl/audit", element: <AuditPage /> },
-      { path: "tacl/integrity", element: <IntegrityPage /> },
+      { path: "analysis/forecast", element: <ComingSoonPage title="Proyecciones" /> },
+      { path: "analysis/simulations", element: <ComingSoonPage title="Simulaciones" /> },
+
+      { path: "system/audit", element: <AuditPage /> },
+      { path: "system/integrity", element: <IntegrityPage /> },
+      { path: "system/snapshots", element: <SnapshotsPage /> },
 
       { path: "*", element: <NotFoundPage /> },
     ],

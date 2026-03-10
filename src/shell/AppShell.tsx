@@ -12,8 +12,12 @@ export function AppShell() {
     if (!trimmed) return;
     toast.message("Búsqueda global (demo)", { description: `Query: "${trimmed}" • Tip: conecta esto a React Query + endpoints.` });
     // Example: route based on keywords
-    if (trimmed.toLowerCase().includes("audit")) navigate("/tacl/audit");
-    else if (trimmed.toLowerCase().includes("snapshot")) navigate("/fice/snapshots");
+    if (trimmed.toLowerCase().includes("audit")) navigate("/app/system/audit");
+      else if (trimmed.toLowerCase().includes("snapshot")) navigate("/app/system/snapshots");
+      else if (trimmed.toLowerCase().includes("perfil")) navigate("/app/finance/profile");
+      else if (trimmed.toLowerCase().includes("mov")) navigate("/app/finance/transactions");
+      else if (trimmed.toLowerCase().includes("proy")) navigate("/app/analysis/forecast");
+      else if (trimmed.toLowerCase().includes("simu")) navigate("/app/analysis/simulations");
   };
 
   return (
