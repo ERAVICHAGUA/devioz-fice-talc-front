@@ -32,5 +32,5 @@ export const NAV: NavItem[] = [
   { label: "Auditoría", to: "/app/system/audit", icon: ActivitySquare, group: "Sistema" },
   { label: "Integridad", to: "/app/system/integrity", icon: ShieldCheck, group: "Sistema" },
 
-  { label: "Snapshots", to: "/app/system/snapshots", icon: ClipboardCheck, group: "Sistema" },
+  { label: "Historial", to: "/app/system/snapshots", icon: ClipboardCheck, group: "Sistema" },
 ];

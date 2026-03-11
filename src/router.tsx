@@ -16,6 +16,7 @@ import { IntegrityPage } from "@/views/tacl/IntegrityPage";
 import { NotFoundPage } from "@/views/system/NotFoundPage";
 import { ErrorBoundaryPage } from "@/views/system/ErrorBoundaryPage";
 import { ProtectedRoute } from "@/views/system/ProtectedRoute";
+import { TransactionsPage } from "./views/transactions/TransactionsPage";
 
 function ComingSoonPage({ title }: { title: string }) {
   return (
@@ -54,8 +55,7 @@ export const router = createBrowserRouter([
 
       { path: "finance/profile", element: <FinancialProfilePage /> },
       { path: "finance/inputs", element: <InputsPage /> },
-      { path: "finance/transactions", element: <ComingSoonPage title="Movimientos" /> },
-
+      { path: "finance/transactions", element: <TransactionsPage /> },
       { path: "analysis/forecast", element: <ComingSoonPage title="Proyecciones" /> },
       { path: "analysis/simulations", element: <ComingSoonPage title="Simulaciones" /> },
 
