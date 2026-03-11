@@ -12,26 +12,41 @@ import { Label } from "@/components/ui/label";
 
 type Scenario = {
   id: number;
-  simulationType?: string;
-  type?: string;
-  amount?: number;
-  currentValue?: number;
-  targetValue?: number;
+  scenarioType?: string;
+  scenarioName?: string;
+  monthlySaving?: number;
+  expenseAmount?: number;
+  loanAmount?: number;
+  months?: number;
 };
 
 type SimulationResult = {
   id: number;
-  resultValue?: number | string;
-  result?: string;
+  projectedBalance?: number;
+  riskLevel?: string;
+  scenarioName?: string;
   recommendation?: string;
 };
+
+function money(value?: number) {
+  if (value == null || Number.isNaN(value)) return "—";
+  return new Intl.NumberFormat("es-PE", {
+    style: "currency",
+    currency: "PEN",
+    minimumFractionDigits: 2,
+  }).format(value);
+}
 
 export function SimulationsPage() {
   const auth = useAuth();
   const userId = auth.userId ? Number(auth.userId) : null;
 
-  const [simulationType, setSimulationType] = React.useState("SAVINGS");
-  const [amount, setAmount] = React.useState("500");
+  const [scenarioType, setScenarioType] = React.useState("SAVINGS");
+  const [scenarioName, setScenarioName] = React.useState("");
+  const [monthlySaving, setMonthlySaving] = React.useState("300");
+  const [expenseAmount, setExpenseAmount] = React.useState("1200");
+  const [loanAmount, setLoanAmount] = React.useState("2400");
+  const [months, setMonths] = React.useState("6");
 
   const scenariosQuery = useQuery({
     queryKey: ["scenarios", userId],
@@ -51,21 +66,63 @@ export function SimulationsPage() {
         throw new Error("No se encontró el usuario autenticado.");
       }
 
-      const parsedAmount = Number(amount);
-
-      if (Number.isNaN(parsedAmount) || parsedAmount <= 0) {
-        throw new Error("Ingresa un monto válido.");
+      if (!scenarioName.trim()) {
+        throw new Error("Ingresa un nombre para la simulación.");
       }
 
-      return dseApi.createSimulation({
+      let payload: any = {
         userId,
-        type: simulationType,
-        amount: parsedAmount,
-      });
+        scenarioType,
+        scenarioName: scenarioName.trim(),
+      };
+
+      if (scenarioType === "SAVINGS") {
+        const saving = Number(monthlySaving);
+        const duration = Number(months);
+
+        if (Number.isNaN(saving) || saving <= 0) {
+          throw new Error("Ingresa un monthlySaving válido.");
+        }
+
+        if (Number.isNaN(duration) || duration <= 0) {
+          throw new Error("Ingresa months válido.");
+        }
+
+        payload.monthlySaving = saving;
+        payload.months = duration;
+      }
+
+      if (scenarioType === "EXPENSE") {
+        const expense = Number(expenseAmount);
+
+        if (Number.isNaN(expense) || expense <= 0) {
+          throw new Error("Ingresa un expenseAmount válido.");
+        }
+
+        payload.expenseAmount = expense;
+      }
+
+      if (scenarioType === "LOAN") {
+        const loan = Number(loanAmount);
+        const duration = Number(months);
+
+        if (Number.isNaN(loan) || loan <= 0) {
+          throw new Error("Ingresa un loanAmount válido.");
+        }
+
+        if (Number.isNaN(duration) || duration <= 0) {
+          throw new Error("Ingresa months válido.");
+        }
+
+        payload.loanAmount = loan;
+        payload.months = duration;
+      }
+
+      return dseApi.createSimulation(payload);
     },
     onSuccess: async () => {
       toast.success("Simulación ejecutada", {
-        description: "Se generó correctamente la simulación.",
+        description: "La simulación se creó correctamente.",
       });
 
       await scenariosQuery.refetch();
@@ -91,7 +148,7 @@ export function SimulationsPage() {
       <div>
         <h1 className="text-xl font-semibold text-white">Simulaciones financieras</h1>
         <p className="mt-1 text-sm text-white/60">
-          Evalúa escenarios y revisa resultados antes de tomar decisiones.
+          Evalúa escenarios de ahorro, gasto o préstamo antes de tomar decisiones.
         </p>
       </div>
 
@@ -108,30 +165,96 @@ export function SimulationsPage() {
             }}
           >
             <div className="space-y-2">
-              <Label htmlFor="simulationType">Tipo de simulación</Label>
+              <Label htmlFor="scenarioType">Tipo de simulación</Label>
               <select
-                id="simulationType"
-                value={simulationType}
-                onChange={(e) => setSimulationType(e.target.value)}
+                id="scenarioType"
+                value={scenarioType}
+                onChange={(e) => setScenarioType(e.target.value)}
                 className="h-10 w-full rounded-2xl border border-white/10 bg-white/5 px-3 text-sm text-white outline-none transition focus:border-white/20"
               >
-                <option value="AHORROS">AHORROS</option>
-                <option value="INVERSION">INVERSIONES</option>
-                <option value="REDUCCIÓN DE GASTOS">REDUCCIÓN DE GASTOS</option>
+                <option value="SAVINGS">AHORROS</option>
+                <option value="EXPENSE">GASTO</option>
+                <option value="LOAN">PRÉSTAMO</option>
               </select>
             </div>
 
             <div className="space-y-2">
-              <Label htmlFor="amount">Monto</Label>
+              <Label htmlFor="scenarioName">Nombre del escenario</Label>
               <Input
-                id="amount"
-                type="number"
-                step="0.01"
-                value={amount}
-                onChange={(e) => setAmount(e.target.value)}
-                placeholder="500"
+                id="scenarioName"
+                value={scenarioName}
+                onChange={(e) => setScenarioName(e.target.value)}
+                placeholder="Ej. Ahorro mensual 6 meses"
               />
             </div>
+
+            {scenarioType === "SAVINGS" && (
+              <>
+                <div className="space-y-2">
+                  <Label htmlFor="monthlySaving">Ahorro mensual</Label>
+                  <Input
+                    id="monthlySaving"
+                    type="number"
+                    step="0.01"
+                    value={monthlySaving}
+                    onChange={(e) => setMonthlySaving(e.target.value)}
+                    placeholder="300"
+                  />
+                </div>
+
+                <div className="space-y-2">
+                  <Label htmlFor="monthsSavings">Meses</Label>
+                  <Input
+                    id="monthsSavings"
+                    type="number"
+                    value={months}
+                    onChange={(e) => setMonths(e.target.value)}
+                    placeholder="6"
+                  />
+                </div>
+              </>
+            )}
+
+            {scenarioType === "EXPENSE" && (
+              <div className="space-y-2 md:col-span-2">
+                <Label htmlFor="expenseAmount">Monto del gasto</Label>
+                <Input
+                  id="expenseAmount"
+                  type="number"
+                  step="0.01"
+                  value={expenseAmount}
+                  onChange={(e) => setExpenseAmount(e.target.value)}
+                  placeholder="1200"
+                />
+              </div>
+            )}
+
+            {scenarioType === "LOAN" && (
+              <>
+                <div className="space-y-2">
+                  <Label htmlFor="loanAmount">Monto del préstamo</Label>
+                  <Input
+                    id="loanAmount"
+                    type="number"
+                    step="0.01"
+                    value={loanAmount}
+                    onChange={(e) => setLoanAmount(e.target.value)}
+                    placeholder="2400"
+                  />
+                </div>
+
+                <div className="space-y-2">
+                  <Label htmlFor="monthsLoan">Meses</Label>
+                  <Input
+                    id="monthsLoan"
+                    type="number"
+                    value={months}
+                    onChange={(e) => setMonths(e.target.value)}
+                    placeholder="12"
+                  />
+                </div>
+              </>
+            )}
 
             <div className="md:col-span-2">
               <Button
@@ -160,10 +283,13 @@ export function SimulationsPage() {
                   className="rounded-2xl border border-white/10 bg-white/5 p-4 text-sm"
                 >
                   <div className="font-medium text-white">
-                    {s.simulationType ?? s.type ?? "SIMULADOR"}
+                    {s.scenarioType ?? "SIMULATION"} · {s.scenarioName ?? "Sin nombre"}
                   </div>
                   <div className="mt-1 text-white/70">
-                    Monto: {s.amount ?? s.currentValue ?? s.targetValue ?? "—"}
+                    {s.monthlySaving != null && <>Ahorro mensual: {money(s.monthlySaving)} · </>}
+                    {s.expenseAmount != null && <>Gasto: {money(s.expenseAmount)} · </>}
+                    {s.loanAmount != null && <>Préstamo: {money(s.loanAmount)} · </>}
+                    {s.months != null ? `Meses: ${s.months}` : ""}
                   </div>
                 </div>
               ))}
@@ -187,9 +313,12 @@ export function SimulationsPage() {
                   className="rounded-2xl border border-white/10 bg-white/5 p-4 text-sm"
                 >
                   <div className="font-medium text-white">
-                    Resultado: {r.resultValue ?? r.result ?? "—"}
+                    {r.scenarioName ?? "Resultado"} · Balance proyectado: {money(Number(r.projectedBalance))}
                   </div>
                   <div className="mt-1 text-white/70">
+                    Riesgo: {r.riskLevel ?? "—"}
+                  </div>
+                  <div className="mt-1 text-white/55">
                     {r.recommendation ?? "Sin recomendación adicional"}
                   </div>
                 </div>
