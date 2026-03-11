@@ -115,9 +115,9 @@ export function SimulationsPage() {
                 onChange={(e) => setSimulationType(e.target.value)}
                 className="h-10 w-full rounded-2xl border border-white/10 bg-white/5 px-3 text-sm text-white outline-none transition focus:border-white/20"
               >
-                <option value="SAVINGS">SAVINGS</option>
-                <option value="INVESTMENT">INVESTMENT</option>
-                <option value="EXPENSE_REDUCTION">EXPENSE_REDUCTION</option>
+                <option value="AHORROS">SAVINGS</option>
+                <option value="INVERSION">INVESTMENT</option>
+                <option value="REDUCCIÓN DE GASTOS">EXPENSE_REDUCTION</option>
               </select>
             </div>
 
@@ -160,7 +160,7 @@ export function SimulationsPage() {
                   className="rounded-2xl border border-white/10 bg-white/5 p-4 text-sm"
                 >
                   <div className="font-medium text-white">
-                    {s.simulationType ?? s.type ?? "SIMULATION"}
+                    {s.simulationType ?? s.type ?? "SIMULADOR"}
                   </div>
                   <div className="mt-1 text-white/70">
                     Monto: {s.amount ?? s.currentValue ?? s.targetValue ?? "—"}

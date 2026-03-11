@@ -206,10 +206,10 @@ const createTransactionMutation = useMutation({
                 onChange={(e) => setIncomeType(e.target.value)}
                 className="h-10 w-full rounded-2xl border border-white/10 bg-white/5 px-3 text-sm text-white outline-none transition focus:border-white/20"
               >
-                <option value="SALARY">Salary</option>
+                <option value="SALARIO">Salario</option>
                 <option value="FREELANCE">Freelance</option>
-                <option value="BUSINESS">Business</option>
-                <option value="OTHER">Other</option>
+                <option value="NEGOCIO">Negocio</option>
+                <option value="OTROS">Otros</option>
               </select>
             </div>
 
@@ -234,9 +234,9 @@ const createTransactionMutation = useMutation({
                 onChange={(e) => setRiskTolerance(e.target.value)}
                 className="h-10 w-full rounded-2xl border border-white/10 bg-white/5 px-3 text-sm text-white outline-none transition focus:border-white/20"
               >
-                <option value="LOW">Low</option>
-                <option value="MEDIUM">Medium</option>
-                <option value="HIGH">High</option>
+                <option value="BAJO">BAJO</option>
+                <option value="MEDIO">MEDIO</option>
+                <option value="ALTO">ALTO</option>
               </select>
             </div>
 
@@ -248,9 +248,9 @@ const createTransactionMutation = useMutation({
                 onChange={(e) => setDecisionStyle(e.target.value)}
                 className="h-10 w-full rounded-2xl border border-white/10 bg-white/5 px-3 text-sm text-white outline-none transition focus:border-white/20"
               >
-                <option value="ANALYTICAL">Analytical</option>
-                <option value="CONSERVATIVE">Conservative</option>
-                <option value="AGGRESSIVE">Aggressive</option>
+                <option value="ANALYTICAL">Analítica</option>
+                <option value="CONSERVATIVE">Conservador</option>
+                <option value="AGGRESSIVE">Agresivo</option>
               </select>
             </div>
 

@@ -64,14 +64,14 @@ export function ForecastPage() {
   const generateMutation = useMutation({
     mutationFn: () => crfeApi.generateForecast(userId as number),
     onSuccess: async () => {
-      toast.success("Forecast generado", {
+      toast.success("Proyección generada", {
         description: "Se creó una proyección automática desde tus movimientos.",
       });
       await forecastsQuery.refetch();
       await alertsQuery.refetch();
     },
     onError: (e: any) => {
-      toast.error("No se pudo generar el forecast", {
+      toast.error("No se pudo generar la proyección", {
         description: e?.message ?? "Ocurrió un error inesperado.",
       });
     },
@@ -87,7 +87,7 @@ export function ForecastPage() {
       const expense = Number(projectedExpense);
 
       if (!forecastDate) {
-        throw new Error("Ingresa la fecha del forecast.");
+        throw new Error("Ingresa la fecha de la proyección.");
       }
 
       if (Number.isNaN(income) || income < 0) {
@@ -107,7 +107,7 @@ export function ForecastPage() {
       });
     },
     onSuccess: async () => {
-      toast.success("Forecast manual creado", {
+      toast.success("Proyección manual creada", {
         description: "La proyección se guardó correctamente.",
       });
 
@@ -120,7 +120,7 @@ export function ForecastPage() {
       await alertsQuery.refetch();
     },
     onError: (e: any) => {
-      toast.error("No se pudo crear el forecast manual", {
+      toast.error("No se pudo crear la proyección manual", {
         description: e?.message ?? "Ocurrió un error inesperado.",
       });
     },
@@ -141,7 +141,7 @@ export function ForecastPage() {
       <div>
         <h1 className="text-xl font-semibold text-white">Proyecciones financieras</h1>
         <p className="mt-1 text-sm text-white/60">
-          Genera forecasts manuales o automáticos a partir de tus movimientos.
+          Genera proyecciones manuales o automáticas a partir de tus movimientos.
         </p>
       </div>
 
@@ -160,7 +160,7 @@ export function ForecastPage() {
 
         <Card>
           <CardHeader>
-            <CardTitle>Forecasts</CardTitle>
+            <CardTitle>Proyecciones</CardTitle>
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-semibold text-white">{forecasts.length}</div>
@@ -189,7 +189,7 @@ export function ForecastPage() {
               onClick={() => generateMutation.mutate()}
               disabled={!userId || generateMutation.isPending}
             >
-              {generateMutation.isPending ? "Generando..." : "Generar forecast desde TIIE"}
+              {generateMutation.isPending ? "Generando..." : "Generar proyección desde movimientos"}
             </Button>
           </div>
         </CardContent>
@@ -197,7 +197,7 @@ export function ForecastPage() {
 
       <Card className="p-0">
         <CardHeader>
-          <CardTitle>Forecast manual</CardTitle>
+          <CardTitle>Proyección manual</CardTitle>
         </CardHeader>
         <CardContent className="pt-0">
           <form
@@ -208,7 +208,7 @@ export function ForecastPage() {
             }}
           >
             <div className="space-y-2">
-              <Label htmlFor="forecastDate">Fecha del forecast</Label>
+              <Label htmlFor="forecastDate">Fecha de la proyección</Label>
               <Input
                 id="forecastDate"
                 type="date"
@@ -225,9 +225,9 @@ export function ForecastPage() {
                 onChange={(e) => setPeriodType(e.target.value)}
                 className="h-10 w-full rounded-2xl border border-white/10 bg-white/5 px-3 text-sm text-white outline-none transition focus:border-white/20"
               >
-                <option value="monthly">monthly</option>
-                <option value="weekly">weekly</option>
-                <option value="yearly">yearly</option>
+                <option value="MENSUAL">MENSUAL</option>
+                <option value="SEMANAL">SEMANAL</option>
+                <option value="ANUAL">ANUAL</option>
               </select>
             </div>
 
@@ -262,7 +262,7 @@ export function ForecastPage() {
               >
                 {createManualForecastMutation.isPending
                   ? "Guardando..."
-                  : "Crear forecast manual"}
+                  : "Crear proyección manual"}
               </Button>
             </div>
           </form>
@@ -271,7 +271,7 @@ export function ForecastPage() {
 
       <Card>
         <CardHeader>
-          <CardTitle>Historial de forecasts</CardTitle>
+          <CardTitle>Historial de proyecciones</CardTitle>
         </CardHeader>
         <CardContent>
           {forecasts.length > 0 ? (
