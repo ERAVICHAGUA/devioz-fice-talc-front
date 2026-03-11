@@ -115,9 +115,9 @@ export function SimulationsPage() {
                 onChange={(e) => setSimulationType(e.target.value)}
                 className="h-10 w-full rounded-2xl border border-white/10 bg-white/5 px-3 text-sm text-white outline-none transition focus:border-white/20"
               >
-                <option value="AHORROS">SAVINGS</option>
-                <option value="INVERSION">INVESTMENT</option>
-                <option value="REDUCCIÓN DE GASTOS">EXPENSE_REDUCTION</option>
+                <option value="AHORROS">AHORROS</option>
+                <option value="INVERSION">INVERSIONES</option>
+                <option value="REDUCCIÓN DE GASTOS">REDUCCIÓN DE GASTOS</option>
               </select>
             </div>
 

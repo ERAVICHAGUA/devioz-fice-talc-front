@@ -42,7 +42,7 @@ export function TransactionsPage() {
         <CardHeader>
           <CardTitle>Historial de movimientos</CardTitle>
           <CardDescription>
-            Información obtenida directamente desde TIIE.
+            Información obtenida directamente desde Movimientos.
           </CardDescription>
         </CardHeader>
 
