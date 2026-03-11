@@ -7,23 +7,28 @@ import { WidgetCard } from "@/components/common/WidgetCard";
 import { cn } from "@/lib/utils";
 import { formatDistanceToNowStrict } from "@/views/system/format";
 import { DndContext, closestCenter } from "@dnd-kit/core";
-import { arrayMove, SortableContext, useSortable, verticalListSortingStrategy } from "@dnd-kit/sortable";
+import {
+  arrayMove,
+  SortableContext,
+  useSortable,
+  verticalListSortingStrategy,
+} from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
-import { DEFAULT_LAYOUT, layoutForRole, type DashboardLayout, type WidgetKey } from "./widgets";
+import {
+  DEFAULT_LAYOUT,
+  layoutForRole,
+  type DashboardLayout,
+  type WidgetKey,
+} from "./widgets";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { NavLink } from "react-router-dom";
 
-const LS_KEY = "devioz.dashboard.layout.v1";
+import { ficeApi } from "@/services/ficeApi";
+import { tiieApi } from "@/services/tiieApi";
+import { crfeApi } from "@/services/crfeApi";
 
-// temporal mientras conectamos APIs reales
-const db = {
-  getFinancialIdentity: async (_userId?: string | number) => null,
-  getInputs: async (_userId?: string | number) => [],
-  getSnapshots: async (_userId?: string | number) => [],
-  getAuditEvents: async (_userId?: string | number) => [],
-  getIntegrityChecks: async () => [],
-};
+const LS_KEY = "devioz.dashboard.layout.v1";
 
 function readLayout(fallback: DashboardLayout): DashboardLayout {
   try {
@@ -51,7 +56,10 @@ function SortableItem({
   onHandleProps?: (p: React.HTMLAttributes<HTMLButtonElement>) => void;
 }) {
   const { attributes, listeners, setNodeRef, transform, transition } = useSortable({ id });
-  const style: React.CSSProperties = { transform: CSS.Transform.toString(transform), transition };
+  const style: React.CSSProperties = {
+    transform: CSS.Transform.toString(transform),
+    transition,
+  };
   const handleProps = { ...attributes, ...listeners };
 
   onHandleProps?.(handleProps);
@@ -61,6 +69,15 @@ function SortableItem({
       {children({ handleProps })}
     </div>
   );
+}
+
+function money(value?: number) {
+  if (value == null || Number.isNaN(value)) return "—";
+  return new Intl.NumberFormat("es-PE", {
+    style: "currency",
+    currency: "PEN",
+    minimumFractionDigits: 2,
+  }).format(value);
 }
 
 export function DashboardPage() {
@@ -73,31 +90,45 @@ export function DashboardPage() {
     if (!raw) setLayout(fallback);
   }, [fallback]);
 
-  const userId = auth.status === "authenticated" ? auth.user_id : "u_user";
+  const userId = auth.status === "authenticated" ? Number(auth.user_id) : null;
 
   const qIdentity = useQuery({
     queryKey: ["identity", userId],
-    queryFn: () => db.getFinancialIdentity(userId),
+    queryFn: () => ficeApi.getFinancialIdentityByUserId(userId as number),
+    enabled: !!userId,
+    retry: false,
   });
 
-  const qInputs = useQuery({
-    queryKey: ["inputs", userId],
-    queryFn: () => db.getInputs(userId),
+  const qTransactions = useQuery({
+    queryKey: ["transactions", userId],
+    queryFn: () => tiieApi.getTransactions(userId as number),
+    enabled: !!userId,
+    retry: false,
+  });
+
+  const qForecasts = useQuery({
+    queryKey: ["forecasts", userId],
+    queryFn: () => crfeApi.getForecasts(userId as number),
+    enabled: !!userId,
+    retry: false,
+  });
+
+  const qAlerts = useQuery({
+    queryKey: ["risk-alerts", userId],
+    queryFn: () => crfeApi.getRiskAlerts(userId as number),
+    enabled: !!userId,
+    retry: false,
   });
 
   const qSnapshots = useQuery({
     queryKey: ["historial", userId],
-    queryFn: () => db.getSnapshots(userId),
-  });
-
-  const qAudit = useQuery({
-    queryKey: ["audit", auth.role, userId],
-    queryFn: () => db.getAuditEvents(auth.role === "Admin" ? undefined : userId),
-  });
-
-  const qIntegrity = useQuery({
-    queryKey: ["integrity"],
-    queryFn: () => db.getIntegrityChecks(),
+    queryFn: async () => {
+      const identity = await ficeApi.getFinancialIdentityByUserId(userId as number);
+      if (!identity?.id) return [];
+      return ficeApi.getSnapshotsByFinancialIdentityId(identity.id);
+    },
+    enabled: !!userId,
+    retry: false,
   });
 
   const ids = layout.widgets.map((w) => w.key);
@@ -116,7 +147,9 @@ export function DashboardPage() {
   const toggleCollapse = (key: WidgetKey) => {
     const next = {
       ...layout,
-      widgets: layout.widgets.map((w) => (w.key === key ? { ...w, collapsed: !w.collapsed } : w)),
+      widgets: layout.widgets.map((w) =>
+        w.key === key ? { ...w, collapsed: !w.collapsed } : w
+      ),
     };
     setLayout(next);
     saveLayout(next);
@@ -136,18 +169,36 @@ export function DashboardPage() {
     toast.success("Layout reseteado");
   };
 
+  const transactions = Array.isArray(qTransactions.data) ? (qTransactions.data as any[]) : [];
+  const forecasts = Array.isArray(qForecasts.data) ? (qForecasts.data as any[]) : [];
+  const alerts = Array.isArray(qAlerts.data) ? (qAlerts.data as any[]) : [];
+
+  const totalIncome = transactions
+    .filter((t) => String(t.type).toUpperCase() === "INCOME")
+    .reduce((sum, t) => sum + Number(t.amount || 0), 0);
+
+  const totalExpense = transactions
+    .filter((t) => String(t.type).toUpperCase() === "EXPENSE")
+    .reduce((sum, t) => sum + Number(t.amount || 0), 0);
+
+  const balance = totalIncome - totalExpense;
+
+  const latestForecast = forecasts.length > 0 ? forecasts[forecasts.length - 1] : null;
+
   const identityLastUpdated =
-  (qIdentity.data as any)?.last_updated
-    ? formatDistanceToNowStrict((qIdentity.data as any).last_updated)
-    : "—";
-    
+    (qIdentity.data as any)?.lastUpdated || (qIdentity.data as any)?.last_updated
+      ? formatDistanceToNowStrict(
+          (qIdentity.data as any)?.lastUpdated ?? (qIdentity.data as any)?.last_updated
+        )
+      : "—";
+
   return (
     <div className="space-y-5">
       <div className="flex items-start justify-between gap-3">
         <div>
           <div className="text-lg font-semibold tracking-tight">Dashboard</div>
           <div className="mt-1 text-sm text-white/60">
-            Widgets flotantes • Reordenables • Guardados en localStorage
+            Resumen real de FICE, TIIE y CRFE
           </div>
         </div>
 
@@ -162,23 +213,29 @@ export function DashboardPage() {
         </div>
       </div>
 
-      <div className="grid grid-cols-1 gap-3 lg:grid-cols-3">
+      <div className="grid grid-cols-1 gap-3 lg:grid-cols-4">
         <KpiCard
           label="Sesión"
           value={`Hola ${auth.firstName ?? auth.username ?? "Usuario"}`}
           hint="Tu espacio financiero está activo"
         />
 
-       <KpiCard
+        <KpiCard
           label="Identidad actualizada"
           value={identityLastUpdated}
-          hint="Basado en financial_identity.last_updated"
+          hint="Basado en financial_identity"
         />
 
         <KpiCard
-          label="Integridad"
-          value={(qIntegrity.data as any[])?.[0]?.status ?? "—"}
-          hint="Último check"
+          label="Balance actual"
+          value={money(balance)}
+          hint="Ingresos menos gastos"
+        />
+
+        <KpiCard
+          label="Alertas"
+          value={String(alerts.length)}
+          hint="Alertas de riesgo detectadas"
         />
       </div>
 
@@ -194,7 +251,17 @@ export function DashboardPage() {
                     onToggleCollapse={() => toggleCollapse(w.key)}
                     onRemove={() => removeWidget(w.key)}
                     dragHandleProps={handleProps}
-                    q={{ qIdentity, qInputs, qSnapshots, qAudit, qIntegrity }}
+                    q={{
+                      qIdentity,
+                      qTransactions,
+                      qForecasts,
+                      qAlerts,
+                      qSnapshots,
+                      totalIncome,
+                      totalExpense,
+                      balance,
+                      latestForecast,
+                    }}
                   />
                 )}
               </SortableItem>
@@ -224,8 +291,8 @@ function WidgetRenderer({
   if (k === "identity_summary") {
     return (
       <WidgetCard
-        title="Resumen de Identidad Financiera"
-        subtitle="financial_identity"
+        title="Resumen de identidad financiera"
+        subtitle="FICE"
         collapsed={collapsed}
         onToggleCollapse={onToggleCollapse}
         onRemove={onRemove}
@@ -242,54 +309,76 @@ function WidgetRenderer({
           <Empty title="Sin identidad" description="Este usuario no tiene identidad financiera." />
         ) : (
           <div className="grid grid-cols-2 gap-3">
-            <KpiCard label="Income type" value={(q.qIdentity.data as any)?.income_type ?? "-"} />
+            <KpiCard label="Income type" value={(q.qIdentity.data as any)?.incomeType ?? "-"} />
             <KpiCard
               label="Stability"
-              value={`${(q.qIdentity.data as any)?.income_stability_score ?? "-"}/100`}
+              value={`${(q.qIdentity.data as any)?.incomeStabilityScore ?? "-"}/100`}
             />
-            <KpiCard label="Risk" value={(q.qIdentity.data as any)?.risk_tolerance ?? "-"} />
-            <KpiCard label="Decision style" value={(q.qIdentity.data as any)?.decision_style ?? "-"} />
+            <KpiCard label="Risk" value={(q.qIdentity.data as any)?.riskTolerance ?? "-"} />
+            <KpiCard label="Decision style" value={(q.qIdentity.data as any)?.decisionStyle ?? "-"} />
           </div>
         )}
       </WidgetCard>
     );
   }
 
-  if (k === "recent_inputs") {
+  if (k === "transactions_summary") {
     return (
       <WidgetCard
-        title="Inputs recientes"
-        subtitle="financial_profile_input"
+        title="Resumen de movimientos"
+        subtitle="TIIE"
         collapsed={collapsed}
         onToggleCollapse={onToggleCollapse}
         onRemove={onRemove}
         dragHandleProps={dragHandleProps}
       >
-        {q.qInputs.isLoading ? (
-          <div className="space-y-3">
-            <Skeleton className="h-10" />
-            <Skeleton className="h-10" />
-            <Skeleton className="h-10" />
+        {q.qTransactions.isLoading ? (
+          <div className="grid grid-cols-3 gap-3">
+            <Skeleton className="h-16" />
+            <Skeleton className="h-16" />
+            <Skeleton className="h-16" />
           </div>
         ) : (
-          <div className="space-y-2">
-            {((q.qInputs.data as any[]) ?? []).slice(0, 5).map((i: any) => (
-              <div
-                key={i.id}
-                className="flex items-center justify-between rounded-2xl border border-white/10 bg-white/5 px-3 py-2"
-              >
-                <div className="text-sm">
-                  <span className="text-white/60">{i.input_type}</span>{" "}
-                  <span className="font-semibold">{i.input_value}</span>
-                </div>
-                <div className="text-xs text-white/45">
-                  {i.created_at ? formatDistanceToNowStrict(i.created_at) : "—"}
-                </div>
-              </div>
-            ))}
-            {!((q.qInputs.data as any[]) ?? []).length ? (
-              <Empty title="Sin inputs" description="Agrega el primer input desde Inputs." />
-            ) : null}
+          <div className="grid grid-cols-3 gap-3">
+            <KpiCard label="Ingresos" value={money(q.totalIncome)} />
+            <KpiCard label="Gastos" value={money(q.totalExpense)} />
+            <KpiCard label="Balance" value={money(q.balance)} />
+          </div>
+        )}
+      </WidgetCard>
+    );
+  }
+
+  if (k === "forecast_summary") {
+    return (
+      <WidgetCard
+        title="Resumen de proyecciones"
+        subtitle="CRFE"
+        collapsed={collapsed}
+        onToggleCollapse={onToggleCollapse}
+        onRemove={onRemove}
+        dragHandleProps={dragHandleProps}
+      >
+        {q.qForecasts.isLoading ? (
+          <div className="grid grid-cols-3 gap-3">
+            <Skeleton className="h-16" />
+            <Skeleton className="h-16" />
+            <Skeleton className="h-16" />
+          </div>
+        ) : (
+          <div className="grid grid-cols-3 gap-3">
+            <KpiCard
+              label="Forecasts"
+              value={String(Array.isArray(q.qForecasts.data) ? q.qForecasts.data.length : 0)}
+            />
+            <KpiCard
+              label="Alertas"
+              value={String(Array.isArray(q.qAlerts.data) ? q.qAlerts.data.length : 0)}
+            />
+            <KpiCard
+              label="Último balance"
+              value={money(q.latestForecast?.forecastBalance ?? q.latestForecast?.projectedBalance)}
+            />
           </div>
         )}
       </WidgetCard>
@@ -299,8 +388,8 @@ function WidgetRenderer({
   if (k === "recent_snapshots") {
     return (
       <WidgetCard
-        title="Historial recientes"
-        subtitle="financial_identity_snapshot"
+        title="Snapshots recientes"
+        subtitle="FICE"
         collapsed={collapsed}
         onToggleCollapse={onToggleCollapse}
         onRemove={onRemove}
@@ -317,68 +406,19 @@ function WidgetRenderer({
             {((q.qSnapshots.data as any[]) ?? []).slice(0, 4).map((s: any) => (
               <div key={s.id} className="rounded-2xl border border-white/10 bg-white/5 p-3">
                 <div className="flex items-center justify-between gap-3">
-                  <div className="text-sm font-semibold">{s.change_reason ?? "Snapshot"}</div>
-                  <div className="text-xs text-white/45">
-                    {s.created_at ? formatDistanceToNowStrict(s.created_at) : "—"}
+                  <div className="text-sm font-semibold">
+                    {s.changeReason ?? s.change_reason ?? "Snapshot"}
                   </div>
-                </div>
-                <div className="mt-2 text-xs text-white/55">
-                  Stability:{" "}
-                  <span className="text-white/80">
-                    {s.snapshot_data?.income_stability_score ?? "-"}
-                  </span>{" "}
-                  • Risk:{" "}
-                  <span className="text-white/80">
-                    {s.snapshot_data?.risk_tolerance ?? "-"}
-                  </span>
+                  <div className="text-xs text-white/45">
+                    {s.createdAt || s.created_at
+                      ? formatDistanceToNowStrict(s.createdAt ?? s.created_at)
+                      : "—"}
+                  </div>
                 </div>
               </div>
             ))}
             {!((q.qSnapshots.data as any[]) ?? []).length ? (
-              <Empty title="Sin snapshots" description="Se generarán cuando conectemos esa vista." />
-            ) : null}
-          </div>
-        )}
-      </WidgetCard>
-    );
-  }
-
-  if (k === "recent_audit") {
-    return (
-      <WidgetCard
-        title="Auditoría reciente"
-        subtitle="audit_event"
-        collapsed={collapsed}
-        onToggleCollapse={onToggleCollapse}
-        onRemove={onRemove}
-        dragHandleProps={dragHandleProps}
-      >
-        {q.qAudit.isLoading ? (
-          <div className="space-y-3">
-            <Skeleton className="h-10" />
-            <Skeleton className="h-10" />
-            <Skeleton className="h-10" />
-          </div>
-        ) : (
-          <div className="space-y-2">
-            {((q.qAudit.data as any[]) ?? []).slice(0, 6).map((e: any) => (
-              <div
-                key={e.id}
-                className="flex items-center justify-between rounded-2xl border border-white/10 bg-white/5 px-3 py-2"
-              >
-                <div className="min-w-0">
-                  <div className="truncate text-sm font-semibold">{e.action}</div>
-                  <div className="truncate text-xs text-white/55">
-                    {e.actor} • {e.entity}
-                  </div>
-                </div>
-                <div className="shrink-0 text-xs text-white/45">
-                  {e.created_at ? formatDistanceToNowStrict(e.created_at) : "—"}
-                </div>
-              </div>
-            ))}
-            {!((q.qAudit.data as any[]) ?? []).length ? (
-              <Empty title="Sin eventos" description="Aparecerán acciones del sistema y usuarios." />
+              <Empty title="Sin snapshots" description="Aún no hay historial reciente." />
             ) : null}
           </div>
         )}
@@ -388,45 +428,37 @@ function WidgetRenderer({
 
   return (
     <WidgetCard
-      title="Integridad"
-      subtitle="Sistema"
+      title="Alertas de riesgo"
+      subtitle="CRFE"
       collapsed={collapsed}
       onToggleCollapse={onToggleCollapse}
       onRemove={onRemove}
       dragHandleProps={dragHandleProps}
     >
-      {q.qIntegrity.isLoading ? (
+      {q.qAlerts.isLoading ? (
         <Skeleton className="h-24" />
       ) : (
         <div className="space-y-3">
-          <div className="flex items-center justify-between rounded-2xl border border-white/10 bg-white/5 p-3">
-            <div>
-              <div className="text-xs text-white/60">Status</div>
+          {((q.qAlerts.data as any[]) ?? []).slice(0, 5).map((a: any) => (
+            <div key={a.id} className="rounded-2xl border border-white/10 bg-white/5 p-3">
               <div
                 className={cn(
-                  "mt-1 text-lg font-semibold",
-                  (q.qIntegrity.data as any[])?.[0]?.status === "WARN"
-                    ? "text-yellow-200"
-                    : "text-accent"
+                  "text-sm font-semibold",
+                  String(a.riskLevel ?? a.alertType ?? "").includes("HIGH")
+                    ? "text-red-300"
+                    : "text-yellow-200"
                 )}
               >
-                {(q.qIntegrity.data as any[])?.[0]?.status ?? "—"}
+                {a.riskLevel ?? a.alertType ?? "RISK"}
+              </div>
+              <div className="mt-1 text-xs text-white/60">
+                {a.message ?? a.description ?? "Sin detalle"}
               </div>
             </div>
-
-            <NavLink to="/app/system/integrity">
-              <Button variant="secondary" size="sm">
-                Ver detalles
-              </Button>
-            </NavLink>
-          </div>
-
-          <div className="text-xs text-white/55">
-            Último check:{" "}
-            {(q.qIntegrity.data as any[])?.[0]?.created_at
-              ? formatDistanceToNowStrict((q.qIntegrity.data as any[])[0].created_at)
-              : "—"}
-          </div>
+          ))}
+          {!((q.qAlerts.data as any[]) ?? []).length ? (
+            <Empty title="Sin alertas" description="No se detectaron riesgos por ahora." />
+          ) : null}
         </div>
       )}
     </WidgetCard>

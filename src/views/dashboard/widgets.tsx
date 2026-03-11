@@ -1,11 +1,9 @@
-import type { Role } from "@/types/domain";
-
 export type WidgetKey =
   | "identity_summary"
-  | "recent_inputs"
+  | "transactions_summary"
+  | "forecast_summary"
   | "recent_snapshots"
-  | "recent_audit"
-  | "integrity_status";
+  | "recent_alerts";
 
 export type WidgetState = {
   key: WidgetKey;
@@ -21,25 +19,13 @@ export const DEFAULT_LAYOUT: DashboardLayout = {
   version: 1,
   widgets: [
     { key: "identity_summary" },
-    { key: "integrity_status" },
-    { key: "recent_inputs" },
+    { key: "transactions_summary" },
+    { key: "forecast_summary" },
     { key: "recent_snapshots" },
-    { key: "recent_audit" },
+    { key: "recent_alerts" },
   ],
 };
 
-export function layoutForRole(role: Role | null): DashboardLayout {
-  if (role === "Admin") {
-    return {
-      version: 1,
-      widgets: [
-        { key: "integrity_status" },
-        { key: "recent_audit" },
-        { key: "recent_snapshots" },
-        { key: "recent_inputs" },
-        { key: "identity_summary" },
-      ],
-    };
-  }
+export function layoutForRole(_role: unknown): DashboardLayout {
   return DEFAULT_LAYOUT;
 }
