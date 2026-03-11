@@ -17,6 +17,8 @@ import { NotFoundPage } from "@/views/system/NotFoundPage";
 import { ErrorBoundaryPage } from "@/views/system/ErrorBoundaryPage";
 import { ProtectedRoute } from "@/views/system/ProtectedRoute";
 import { TransactionsPage } from "./views/transactions/TransactionsPage";
+import { ForecastPage } from "@/views/analysis/ForecastPage";
+import { SimulationsPage } from "@/views/analysis/SimulationsPage";
 
 function ComingSoonPage({ title }: { title: string }) {
   return (
@@ -56,9 +58,8 @@ export const router = createBrowserRouter([
       { path: "finance/profile", element: <FinancialProfilePage /> },
       { path: "finance/inputs", element: <InputsPage /> },
       { path: "finance/transactions", element: <TransactionsPage /> },
-      { path: "analysis/forecast", element: <ComingSoonPage title="Proyecciones" /> },
-      { path: "analysis/simulations", element: <ComingSoonPage title="Simulaciones" /> },
-
+      { path: "analysis/forecast", element: <ForecastPage /> },
+      { path: "analysis/simulations", element: <SimulationsPage /> },
       { path: "system/audit", element: <AuditPage /> },
       { path: "system/integrity", element: <IntegrityPage /> },
       { path: "system/snapshots", element: <SnapshotsPage /> },
