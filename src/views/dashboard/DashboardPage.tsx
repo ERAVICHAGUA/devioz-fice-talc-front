@@ -198,13 +198,13 @@ export function DashboardPage() {
         <div>
           <div className="text-lg font-semibold tracking-tight">Dashboard</div>
           <div className="mt-1 text-sm text-white/60">
-            Resumen real de FICE, TIIE y CRFE
+            Toma el control de tu dinero
           </div>
         </div>
 
         <div className="flex items-center gap-2">
           <Button variant="secondary" size="sm" onClick={resetLayout}>
-            Reset layout
+            Restablecer Diseño
           </Button>
 
           <NavLink to="/app/finance/profile">
@@ -223,10 +223,10 @@ export function DashboardPage() {
         <KpiCard
           label="Identidad actualizada"
           value={identityLastUpdated}
-          hint="Basado en financial_identity"
+          hint="Última actualización"
         />
 
-        <KpiCard
+        <KpiCard  
           label="Balance actual"
           value={money(balance)}
           hint="Ingresos menos gastos"
@@ -292,7 +292,7 @@ function WidgetRenderer({
     return (
       <WidgetCard
         title="Resumen de identidad financiera"
-        subtitle="FICE"
+        subtitle="Analiza, entiende y optimiza tu capital"
         collapsed={collapsed}
         onToggleCollapse={onToggleCollapse}
         onRemove={onRemove}
@@ -309,13 +309,13 @@ function WidgetRenderer({
           <Empty title="Sin identidad" description="Este usuario no tiene identidad financiera." />
         ) : (
           <div className="grid grid-cols-2 gap-3">
-            <KpiCard label="Income type" value={(q.qIdentity.data as any)?.incomeType ?? "-"} />
+            <KpiCard label="Tipo de Ingreso" value={(q.qIdentity.data as any)?.incomeType ?? "-"} />
             <KpiCard
-              label="Stability"
+              label="Estabilidad"
               value={`${(q.qIdentity.data as any)?.incomeStabilityScore ?? "-"}/100`}
             />
-            <KpiCard label="Risk" value={(q.qIdentity.data as any)?.riskTolerance ?? "-"} />
-            <KpiCard label="Decision style" value={(q.qIdentity.data as any)?.decisionStyle ?? "-"} />
+            <KpiCard label="Riesgo" value={(q.qIdentity.data as any)?.riskTolerance ?? "-"} />
+            <KpiCard label="Estilo de Decisión" value={(q.qIdentity.data as any)?.decisionStyle ?? "-"} />
           </div>
         )}
       </WidgetCard>
@@ -326,7 +326,7 @@ function WidgetRenderer({
     return (
       <WidgetCard
         title="Resumen de movimientos"
-        subtitle="TIIE"
+        subtitle="Análisis de Gastos e Ingresos"
         collapsed={collapsed}
         onToggleCollapse={onToggleCollapse}
         onRemove={onRemove}
@@ -353,7 +353,7 @@ function WidgetRenderer({
     return (
       <WidgetCard
         title="Resumen de proyecciones"
-        subtitle="CRFE"
+        subtitle="Escenarios Futuros basados en tu comportamiento"
         collapsed={collapsed}
         onToggleCollapse={onToggleCollapse}
         onRemove={onRemove}
@@ -368,7 +368,7 @@ function WidgetRenderer({
         ) : (
           <div className="grid grid-cols-3 gap-3">
             <KpiCard
-              label="Forecasts"
+              label="Proyectos generados"
               value={String(Array.isArray(q.qForecasts.data) ? q.qForecasts.data.length : 0)}
             />
             <KpiCard
@@ -388,8 +388,8 @@ function WidgetRenderer({
   if (k === "recent_snapshots") {
     return (
       <WidgetCard
-        title="Snapshots recientes"
-        subtitle="FICE"
+        title="Historial reciente"
+        subtitle="Histórico de cambios en tu identidad financiera"
         collapsed={collapsed}
         onToggleCollapse={onToggleCollapse}
         onRemove={onRemove}
