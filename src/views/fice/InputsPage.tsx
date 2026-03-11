@@ -109,55 +109,57 @@ export function InputsPage() {
     },
   });
 
-  const createTransactionMutation = useMutation({
-    mutationFn: async () => {
-      if (!userId) {
-        throw new Error("No se encontró el usuario autenticado.");
-      }
+const createTransactionMutation = useMutation({
+  mutationFn: async () => {
+    if (!userId) {
+      throw new Error("No se encontró el usuario autenticado.");
+    }
 
-      const parsedAmount = Number(amount);
+    const parsedAmount = Number(amount);
 
-      if (!amount || Number.isNaN(parsedAmount) || parsedAmount <= 0) {
-        throw new Error("Ingresa un monto válido.");
-      }
+    if (!amount || Number.isNaN(parsedAmount) || parsedAmount <= 0) {
+      throw new Error("Ingresa un monto válido.");
+    }
 
-      if (!rawDescription.trim()) {
-        throw new Error("Ingresa una descripción.");
-      }
+    if (!rawDescription.trim()) {
+      throw new Error("Ingresa una descripción.");
+    }
 
-      return tiieApi.createTransaction({
-        userId,
-        type: txType,
-        amount: parsedAmount,
-        currency: currency.trim() || "PEN",
-        rawDescription: rawDescription.trim(),
-        merchantRaw: merchantRaw.trim(),
-        occurredAt: occurredAt
-          ? new Date(occurredAt).toISOString()
-          : new Date().toISOString(),
-      });
-    },
-    onSuccess: async () => {
-      toast.success("Movimiento registrado", {
-        description: "La transacción se guardó correctamente.",
-      });
+    const payload = {
+      userId: Number(userId),
+      type: txType.toUpperCase(),
+      amount: parsedAmount,
+      currency: (currency.trim() || "PEN").toUpperCase(),
+      rawDescription: rawDescription.trim(),
+      merchantRaw: merchantRaw.trim(),
+      occurredAt: occurredAt
+        ? new Date(occurredAt).toISOString()
+        : new Date().toISOString(),
+    };
 
-      setAmount("");
-      setCurrency("PEN");
-      setRawDescription("");
-      setMerchantRaw("");
-      setOccurredAt("");
+    return tiieApi.createTransaction(payload);
+  },
+  onSuccess: async () => {
+    toast.success("Movimiento registrado", {
+      description: "La transacción se guardó correctamente.",
+    });
 
-      await qc.invalidateQueries({
-        queryKey: ["transactions", userId],
-      });
-    },
-    onError: (e: any) => {
-      toast.error("No se pudo registrar el movimiento", {
-        description: e?.message ?? "Ocurrió un error inesperado.",
-      });
-    },
-  });
+    setAmount("");
+    setCurrency("PEN");
+    setRawDescription("");
+    setMerchantRaw("");
+    setOccurredAt("");
+
+    await qc.invalidateQueries({
+      queryKey: ["transactions", userId],
+    });
+  },
+  onError: (e: any) => {
+    toast.error("No se pudo registrar el movimiento", {
+      description: e?.message ?? "Ocurrió un error inesperado.",
+    });
+  },
+});
 
   const onSubmitIdentity = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
