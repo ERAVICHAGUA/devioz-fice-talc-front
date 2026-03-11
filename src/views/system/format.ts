@@ -13,5 +13,13 @@ export function formatDistanceToNowStrict(iso: string) {
 
 export function fmtDate(iso: string) {
   const d = new Date(iso);
-  return d.toLocaleString("es-PE", { year: "numeric", month: "short", day: "2-digit", hour: "2-digit", minute: "2-digit" });
+
+  return d.toLocaleString("es-PE", {
+    timeZone: "America/Lima",
+    year: "numeric",
+    month: "short",
+    day: "2-digit",
+    hour: "2-digit",
+    minute: "2-digit"
+  });
 }
